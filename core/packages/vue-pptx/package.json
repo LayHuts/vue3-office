@@ -1,6 +1,6 @@
 {
-  "name": "@vue-office/pptx",
-  "version": "2.0.0",
+  "name": "@vue3-office/pptx",
+  "version": "1.0.0",
   "description": "Vue3 pptx文档预览组件",
   "type": "module",
   "main": "./lib/index.js",
@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:501351981/vue-office.git"
+    "url": "git@github.com:LayHuts/vue3-office.git"
   },
   "keywords": [
     "vue3",
