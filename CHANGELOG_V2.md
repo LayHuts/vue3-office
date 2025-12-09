@@ -72,10 +72,10 @@ pnpm build
 
 ### 安装组件
 ```bash
-pnpm add @vue-office/docx
-pnpm add @vue-office/excel
-pnpm add @vue-office/pdf
-pnpm add @vue-office/pptx
+pnpm add @vue3-office/docx
+pnpm add @vue3-office/excel
+pnpm add @vue3-office/pdf
+pnpm add @vue3-office/pptx
 ```
 
 ### 使用示例
@@ -88,8 +88,8 @@ pnpm add @vue-office/pptx
 </template>
 
 <script setup>
-import VueOfficeDocx from '@vue-office/docx'
-import '@vue-office/docx/lib/style.css'
+import VueOfficeDocx from '@vue3-office/docx'
+import '@vue3-office/docx/lib/style.css'
 
 const docxUrl = 'https://example.com/document.docx'
 

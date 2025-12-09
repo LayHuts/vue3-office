@@ -1,4 +1,4 @@
-# vue-office
+# vue3-office
 
 支持多种文件(**docx、excel、pdf、pptx**)预览的 Vue3 组件库。
 
@@ -14,24 +14,24 @@
 使用 pnpm（推荐）：
 ```shell
 # docx文档预览组件
-pnpm add @vue-office/docx
+pnpm add @vue3-office/docx
 
 # excel文档预览组件
-pnpm add @vue-office/excel
+pnpm add @vue3-office/excel
 
 # pdf文档预览组件
-pnpm add @vue-office/pdf
+pnpm add @vue3-office/pdf
 
 # pptx文档预览组件
-pnpm add @vue-office/pptx
+pnpm add @vue3-office/pptx
 ```
 
 或使用 npm：
 ```shell
-npm install @vue-office/docx
-npm install @vue-office/excel
-npm install @vue-office/pdf
-npm install @vue-office/pptx
+npm install @vue3-office/docx
+npm install @vue3-office/excel
+npm install @vue3-office/pdf
+npm install @vue3-office/pptx
 ```
 
 ## 使用示例
@@ -56,9 +56,9 @@ npm install @vue-office/pptx
 
 <script>
 //引入VueOfficeDocx组件
-import VueOfficeDocx from '@vue-office/docx'
+import VueOfficeDocx from '@vue3-office/docx'
 //引入相关样式
-import '@vue-office/docx/lib/index.css'
+import '@vue3-office/docx/lib/index.css'
 
 export default {
     components:{
@@ -90,8 +90,8 @@ export default {
 </template>
 
 <script>
-import VueOfficeDocx from '@vue-office/docx'
-import '@vue-office/docx/lib/index.css'
+import VueOfficeDocx from '@vue3-office/docx'
+import '@vue3-office/docx/lib/index.css'
 
 export default {
     components: {
@@ -131,9 +131,9 @@ export default {
 
 <script>
 //引入VueOfficeDocx组件
-import VueOfficeDocx from '@vue-office/docx'
+import VueOfficeDocx from '@vue3-office/docx'
 //引入相关样式
-import '@vue-office/docx/lib/index.css'
+import '@vue3-office/docx/lib/index.css'
 
 export default {
     components:{
@@ -181,9 +181,9 @@ export default {
 
 <script>
 //引入VueOfficeExcel组件
-import VueOfficeExcel from '@vue-office/excel'
+import VueOfficeExcel from '@vue3-office/excel'
 //引入相关样式
-import '@vue-office/excel/lib/index.css'
+import '@vue3-office/excel/lib/index.css'
 
 export default {
     components: {
@@ -223,7 +223,7 @@ export default {
 
 <script>
 //引入VueOfficePdf组件
-import VueOfficePdf from '@vue-office/pdf'
+import VueOfficePdf from '@vue3-office/pdf'
 
 export default {
     components: {
@@ -264,7 +264,7 @@ export default {
 </template>
 
 <script>
-import VueOfficePptx from '@vue-office/pptx'
+import VueOfficePptx from '@vue3-office/pptx'
 
 export default {
     components: {

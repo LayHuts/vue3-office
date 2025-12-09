@@ -39,13 +39,13 @@
 2. **更新依赖**
    ```bash
    # 卸载旧版本
-   npm uninstall @vue-office/docx @vue-office/excel @vue-office/pdf @vue-office/pptx vue-demi
+   npm uninstall @vue3-office/docx @vue3-office/excel @vue3-office/pdf @vue3-office/pptx vue-demi
    
    # 安装新版本
-   pnpm add @vue-office/docx
-   pnpm add @vue-office/excel
-   pnpm add @vue-office/pdf
-   pnpm add @vue-office/pptx
+   pnpm add @vue3-office/docx
+   pnpm add @vue3-office/excel
+   pnpm add @vue3-office/pdf
+   pnpm add @vue3-office/pptx
    ```
 
 3. **代码无需修改**
@@ -89,12 +89,12 @@ Vue3 的插件安装方式略有不同，但向后兼容：
 ```javascript
 // 旧版本（Vue2）
 import Vue from 'vue'
-import VueOfficeDocx from '@vue-office/docx'
+import VueOfficeDocx from '@vue3-office/docx'
 Vue.use(VueOfficeDocx)
 
 // 新版本（Vue3）
 import { createApp } from 'vue'
-import VueOfficeDocx from '@vue-office/docx'
+import VueOfficeDocx from '@vue3-office/docx'
 const app = createApp(App)
 app.use(VueOfficeDocx)
 ```
@@ -102,8 +102,8 @@ app.use(VueOfficeDocx)
 ### 样式导入
 保持不变：
 ```javascript
-import '@vue-office/docx/lib/style.css'
-import '@vue-office/excel/lib/style.css'
+import '@vue3-office/docx/lib/style.css'
+import '@vue3-office/excel/lib/style.css'
 ```
 
 ## 性能提升

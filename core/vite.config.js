@@ -6,7 +6,7 @@ export default defineConfig({
     host: '0.0.0.0'
   },
   plugins: [vue()],
-  base: '/vue-office/examples/dist',
+  base: '/vue3-office/examples/dist',
   build: {
     outDir: '../examples/dist'
   }
