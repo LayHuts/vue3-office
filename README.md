@@ -1,10 +1,8 @@
 # vue-office
 
-支持多种文件(**docx、excel、pdf、pptx**)预览的vue组件库，支持vue2/3。也支持非Vue框架的预览。
+支持多种文件(**docx、excel、pdf、pptx**)预览的 Vue3 组件库。
 
 [《演示效果》](https://501351981.github.io/vue-office/examples/dist/)
-
-[《使用非Vue框架（原生js、React等）、或者Vue里面报错，看这里》](https://501351981.github.io/vue-office/examples/docs/guide/js-preview.html)
 ## 功能特色
 - 一站式：提供word(.docx)、pdf、excel(.xlsx, .xls)、ppt(.pptx)多种文档的在线预览方案，有它就够了
 - 简单：只需提供文档的src(网络地址)即可完成文档预览
@@ -12,22 +10,28 @@
 - 性能好：针对数据量较大做了优化
 
 ## 安装
+
+使用 pnpm（推荐）：
 ```shell
-#docx文档预览组件
-npm install @vue-office/docx vue-demi@0.14.6
+# docx文档预览组件
+pnpm add @vue-office/docx
 
-#excel文档预览组件
-npm install @vue-office/excel vue-demi@0.14.6
+# excel文档预览组件
+pnpm add @vue-office/excel
 
-#pdf文档预览组件
-npm install @vue-office/pdf vue-demi@0.14.6
+# pdf文档预览组件
+pnpm add @vue-office/pdf
 
-#pptx文档预览组件
-npm install @vue-office/pptx vue-demi@0.14.6
+# pptx文档预览组件
+pnpm add @vue-office/pptx
 ```
-如果是vue2.6版本或以下还需要额外安装 @vue/composition-api
+
+或使用 npm：
 ```shell
-npm install @vue/composition-api
+npm install @vue-office/docx
+npm install @vue-office/excel
+npm install @vue-office/pdf
+npm install @vue-office/pptx
 ```
 
 ## 使用示例
@@ -285,12 +289,27 @@ export default {
 
 </details>
 
-# 项目依赖的第三方库
+## 项目结构
 
-- docx： 基于docx-preview库实现，相关issues暂不处理
-- pdf： 基于pdfjs库实现，实现了虚拟列表增加性能
-- excel: 基于exceljs 和 x-data-spreadsheet实现，全网样式支持更好
-- pptx： 基于自研库 [pptx-preview](https://github.com/501351981/pptx-preview) 实现，源码单独付费向作者索取
+```
+vue-office/
+├── core/              # 主项目（组件库 + 演示应用）
+│   ├── packages/     # 组件包源码
+│   └── src/          # 演示应用
+├── demo-vue3/        # Vue3 使用示例
+└── examples/         # 构建输出目录
+```
+
+## 开发指南
+
+详见 [core/README.md](./core/README.md)
+
+## 项目依赖的第三方库
+
+- **docx**：基于 docx-preview 库实现
+- **pdf**：基于 pdfjs 库实现，实现了虚拟列表增加性能
+- **excel**：基于 exceljs 和 x-data-spreadsheet 实现，全网样式支持更好
+- **pptx**：基于自研库 [pptx-preview](https://github.com/501351981/pptx-preview) 实现
 
 # 我要支持作者
 ## 打赏加微信好友

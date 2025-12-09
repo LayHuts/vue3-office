@@ -1,7 +1,7 @@
 import VueOfficeExcel from './src/main.vue';
 
-VueOfficeExcel.install = function (Vue) {
-    Vue.component(VueOfficeExcel.name, VueOfficeExcel);
+VueOfficeExcel.install = function (app) {
+    app.component(VueOfficeExcel.name, VueOfficeExcel);
 };
 
 export default VueOfficeExcel;

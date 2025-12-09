@@ -9,7 +9,9 @@ onMounted(()=>{
     console.log(route.path);
     let hash = location.hash;
     let currentRoute = 'docx';
-    if(hash.includes('excel')){
+    if(hash.includes('excel-spreadsheet')){
+        currentRoute = 'excel-spreadsheet';
+    }else if(hash.includes('excel')){
         currentRoute = 'excel';
     }else if(hash.includes('pdf')){
         currentRoute = 'pdf';
@@ -26,13 +28,16 @@ function go({key}){
 </script>
 
 <template>
-  <div>
+  <div class="app-container">
       <a-menu v-model:selectedKeys="current" mode="horizontal" @click="go">
           <a-menu-item key="docx">
              docx文件预览
           </a-menu-item>
           <a-menu-item key="excel">
               excel文件预览
+          </a-menu-item>
+          <a-menu-item key="excel-spreadsheet">
+              x-spreadsheet示例
           </a-menu-item>
           <a-menu-item key="pdf">
               pdf文件预览
@@ -47,7 +52,14 @@ function go({key}){
 </template>
 
 <style scoped>
-/deep/ .ant-tabs-nav-wrap{
+.app-container {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.ant-tabs-nav-wrap){
   padding-left: 20px !important;
 }
 

@@ -20,16 +20,16 @@ const themeColor = [
 ];
 
 const indexedColor = [
-    '#000000',
-    '#FFFFFF',
-    '#FF0000',
-    '#00FF00',
-    '#0000FF',
-    '#FFFF00',
-    '#FF00FF',
-    '#00FFFF',
-    '#000000',
-    '#FFFFFF',
+    '#000000',  // 0: 黑色
+    '#FFFFFF',  // 1: 白色
+    '#FF0000',  // 2: 红色
+    '#00FF00',  // 3: 绿色
+    '#0000FF',  // 4: 蓝色
+    '#FFFF00',  // 5: 黄色
+    '#FF00FF',  // 6: 洋红
+    '#00FFFF',  // 7: 青色
+    '#000000',  // 8: 黑色（修复：原来是白色）
+    '#FFFFFF',  // 9: 白色
     '#FF0000',
     '#00FF00',
     '#0000FF',
@@ -87,12 +87,32 @@ const indexedColor = [
     '#000000'
 ];
 
+// 默认列宽（像素）
 let defaultColWidth = 80;
+// 默认行高（像素）
 let defaultRowHeight = 24;
+
+/**
+ * 获取 Excel 文件数据
+ * @param {string} src - Excel 文件的 URL 地址
+ * @param {Object} options - 请求选项
+ * @returns {Promise<ArrayBuffer>} Excel 文件的二进制数据
+ */
 export function getData(src, options={}) {
     return requestExcel(getUrl(src), options);
 }
 
+/**
+ * 通过 XHR 请求 Excel 文件
+ * @param {string} src - Excel 文件的 URL 地址
+ * @param {Object} options - 请求选项
+ * @param {string} [options.method='GET'] - HTTP 请求方法
+ * @param {string} [options.responseType='arraybuffer'] - 响应类型
+ * @param {boolean} [options.withCredentials=false] - 是否携带凭证
+ * @param {Object} [options.headers] - 自定义请求头
+ * @param {any} [options.body] - 请求体
+ * @returns {Promise<ArrayBuffer>} Excel 文件的二进制数据
+ */
 function requestExcel(src, options) {
     return new Promise(function(resolve, reject) {
         const xhr = new XMLHttpRequest();
@@ -119,8 +139,15 @@ function requestExcel(src, options) {
     });
 }
 
+/**
+ * 读取并解析 Excel 文件数据
+ * @param {ArrayBuffer} buffer - Excel 文件的二进制数据
+ * @param {boolean} xls - 是否为 .xls 格式（旧版 Excel 格式）
+ * @returns {Promise<Workbook>} exceljs 的 Workbook 对象
+ */
 export function readExcelData(buffer, xls){
     try {
+        // 如果是 .xls 格式，先转换为 .xlsx 格式
         if(xls){
             const workbook = read(buffer, {type: 'array'});
             buffer = write(workbook, { bookType: 'xlsx', type: 'array' });
@@ -134,15 +161,25 @@ export function readExcelData(buffer, xls){
     }
 }
 
-
+/**
+ * 转换 Excel 列信息为 x-data-spreadsheet 格式
+ * @param {Object} excelSheet - exceljs 的 worksheet 对象
+ * @param {Object} spreadSheet - x-data-spreadsheet 的 sheet 数据对象
+ * @param {Object} options - 转换选项
+ * @param {number} [options.widthOffset=0] - 列宽偏移量
+ * @param {number} [options.minColLength=0] - 最小列数
+ */
 function transferColumns(excelSheet, spreadSheet, options){
     for(let i = 0;i < (excelSheet.columns || []).length; i++){
         spreadSheet.cols[i.toString()] = {};
         if(excelSheet.columns[i]._hidden) {
+            // 隐藏列设置为极小宽度
             spreadSheet.cols[i.toString()].width = 0.1;
         }else if(excelSheet.columns[i].width) {
+            // Excel 列宽单位转换：Excel 单位 * 6 ≈ 像素
             spreadSheet.cols[i.toString()].width = excelSheet.columns[i].width * 6 + (options.widthOffset || 0);
         } else {
+            // 使用默认列宽
             spreadSheet.cols[i.toString()].width = defaultColWidth + (options.widthOffset || 0);
         }
     }
@@ -150,11 +187,15 @@ function transferColumns(excelSheet, spreadSheet, options){
     spreadSheet.cols.len = Math.max(Object.keys(spreadSheet.cols).length, options.minColLength || 0);
 }
 
+/**
+ * 获取单元格的文本内容，根据单元格类型和格式进行转换
+ * @param {Object} cell - exceljs 的 cell 对象
+ * @returns {string} 格式化后的文本内容
+ */
 function getCellText(cell){
-    //console.log(cell);
     let {numFmt, value, type} = cell;
     switch (type){
-        case 2: //数字
+        case 2: // 数字类型
             try {
                 //numFmt:
                 // "0.00%"
@@ -211,10 +252,10 @@ function getCellText(cell){
             }catch (e){
                 return value;
             }
-            
-        case 3: //字符串
+
+        case 3: // 字符串类型
             return value;
-        case 4: //日期
+        case 4: // 日期类型
             switch (numFmt){
                 case 'yyyy-mm-dd;@':
                     return dayjs(value).format('YYYY-MM-DD');
@@ -233,18 +274,24 @@ function getCellText(cell){
                     return dayjs(value).format('YYYY-MM-DD');
             }
 
-        case 5: //超链接
+        case 5: // 超链接类型
             return value.text;
-        case 6: //公式
+        case 6: // 公式类型
             return get(value, 'result.error') || value.result;
-        case 8: //富文本
+        case 8: // 富文本类型
             return cell.text;
-        case 9: //Boolean
+        case 9: // 布尔类型
             return cell.text.toUpperCase();
         default:
             return value;
     }
 }
+
+/**
+ * 转换 ARGB 颜色格式为十六进制颜色
+ * @param {string|Object} originColor - ARGB 颜色值（如 'FFFF0000' 或 '#FFFF0000'）
+ * @returns {string} 十六进制颜色值（如 '#FF0000'）
+ */
 function transferArgbColor(originColor){
     if(typeof originColor === 'object'){
         return '#000000';
@@ -265,23 +312,44 @@ function transferArgbColor(originColor){
         console.warn(e);
     }
 }
+/**
+ * 转换 Excel 主题颜色为十六进制颜色
+ * @param {number} themeIndex - 主题颜色索引（0-9）
+ * @param {number} [tint] - 色调调整值（-1 到 1，正值变浅，负值变深）
+ * @returns {string} 十六进制颜色值
+ */
 function transferThemeColor(themeIndex, tint){
-
     if(themeIndex > 9){
         return '#C7C9CC';
     }
     if(typeof tint === 'undefined'){
         return themeColor[themeIndex];
     }else if(tint > 0){
+        // 正值：变浅
         return getLightColor(themeColor[themeIndex], tint);
     }else{
+        // 负值：变深
         return getDarkColor(themeColor[themeIndex],Math.abs(tint));
     }
 }
+
+/**
+ * 获取并转换单元格样式为 x-data-spreadsheet 格式
+ * @param {Object} cell - exceljs 的 cell 对象
+ * @returns {Object} 转换后的样式对象
+ */
 function getStyle(cell){
     cell.style = cloneDeep(cell.style);
+
+    // 如果没有 fill 或 fill.pattern 是 'none'，删除可能存在的默认 bgcolor
+    if(!cell.style.fill || !cell.style.fill.pattern || cell.style.fill.pattern === 'none') {
+        delete cell.style.bgcolor;
+    }
+
     let backGroundColor = null;
-    if(cell.style.fill && cell.style.fill.fgColor) {
+
+    // 只有当填充模式不是 'none' 且不是 undefined 时才处理背景色
+    if(cell.style.fill && cell.style.fill.pattern && cell.style.fill.pattern !== 'none' && cell.style.fill.fgColor) {
         // 8位字符颜色先转rgb再转16进制颜色
         if(cell.style.fill.fgColor.argb){
             backGroundColor = transferArgbColor(cell.style.fill.fgColor.argb);
@@ -361,14 +429,23 @@ function getStyle(cell){
     return cell.style;
 }
 
+/**
+ * 将 exceljs 的 Workbook 对象转换为 x-data-spreadsheet 格式
+ * @param {Object} workbook - exceljs 的 Workbook 对象
+ * @param {Object} options - 转换选项
+ * @param {number} [options.widthOffset=0] - 列宽偏移量
+ * @param {number} [options.heightOffset=0] - 行高偏移量
+ * @param {number} [options.minRowLength=100] - 最小行数
+ * @param {number} [options.minColLength=0] - 最小列数
+ * @returns {Object} 包含 workbookData、workbookSource 和 medias 的对象
+ */
 export function transferExcelToSpreadSheet(workbook, options){
     let workbookData = [];
     console.log(workbook, 'workbook');
     let sheets = [];
     workbook.eachSheet((sheet) => {
         sheets.push(sheet);
-        //console.log(sheet,'sheet');
-        // 构造x-data-spreadsheet 的 sheet 数据源结构
+        // 构造 x-data-spreadsheet 的 sheet 数据源结构
         let sheetData = { name: sheet.name,styles : [], rows: {},cols:{}, merges:[],media:[] };
         // 收集合并单元格信息
         let mergeAddressData = [];
@@ -404,13 +481,14 @@ export function transferExcelToSpreadSheet(workbook, options){
                 sheetData.rows[spreadSheetRowIndex].cells[spreadSheetColIndex] = {};
                 effectiveMaxColLen = Math.max(effectiveMaxColLen, spreadSheetColIndex);
 
-                let mergeAddress = find(mergeAddressData, function(o) { return o.startAddress == cell._address; });
-                if(mergeAddress && cell.master.address != mergeAddress.startAddress) {
+                let mergeAddress = find(mergeAddressData, function(o) { return o.startAddress === cell._address; });
+                if(mergeAddress && cell.master.address !== mergeAddress.startAddress) {
                     return;
                 }
                 if(mergeAddress){
                     sheetData.rows[spreadSheetRowIndex].cells[spreadSheetColIndex].merge = [mergeAddress.YRange, mergeAddress.XRange];
                 }
+
                 sheetData.rows[spreadSheetRowIndex].cells[spreadSheetColIndex].text = getCellText(cell);
                 sheetData.styles.push(getStyle(cell));
                 sheetData.rows[spreadSheetRowIndex].cells[spreadSheetColIndex].style = sheetData.styles.length - 1;
@@ -431,6 +509,7 @@ export function transferExcelToSpreadSheet(workbook, options){
         transferColumns(sheet,sheetData, options);
         workbookData.push(sheetData);
     });
+
     // console.log(workbookData, 'workbookData');
     workbook._worksheets = sheets;
     return {

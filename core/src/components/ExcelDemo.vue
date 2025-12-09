@@ -1,6 +1,6 @@
 <script setup>
 import VueOfficeExcel from '../../packages/vue-excel/index';
-import '../../packages/vue-excel/src/index.css';
+import 'x-data-spreadsheet/dist/xspreadsheet.css';
 import PreviewWrapper from '../common/PreviewWrapper.vue';
 import useLoading from '../hooks/useLoading.js';
 import {ref} from 'vue';
@@ -27,29 +27,39 @@ const docxRef = ref();
 function beforeTransformData(data){
     console.log('beforeTransformData', data, docxRef);
 
-    data._worksheets.forEach(worksheet=>{
-        let line = 0;
-        if( worksheet._rows[line] && worksheet._rows[line]._cells){
-            for(let i = 0;i < worksheet._rows[line]._cells.length;i++){
-                let cell = worksheet._rows[line]._cells[i];
-                if(!cell){
-                    //单元格不存在
-                    worksheet._rows[line]._cells[i] = {
-                        text: '',
-                        value:'',
-                        style: {
-                            bgcolor: '#00ff00'
-                        }
-                    }
-                }else{
-                    cell.style = {
-                        bgcolor: '#00ff00'
-                    }
-                }
-            }
-        }
-
-    })
+    // 暂时注释掉，先确保基本功能正常
+    // data._worksheets.forEach(worksheet=>{
+    //     let line = 0;
+    //     if( worksheet._rows[line] && worksheet._rows[line]._cells){
+    //         for(let i = 0;i < worksheet._rows[line]._cells.length;i++){
+    //             let cell = worksheet._rows[line]._cells[i];
+    //             if(!cell){
+    //                 //单元格不存在
+    //                 worksheet._rows[line]._cells[i] = {
+    //                     text: '',
+    //                     value:'',
+    //                     style: {
+    //                         bgcolor: '#00ff00'
+    //                     }
+    //                 }
+    //             }else{
+    //                 // 正确的方式：获取现有样式，然后添加 bgcolor
+    //                 // 使用 cell.style getter 获取完整样式
+    //                 const currentStyle = cell.style;
+    //                 console.log(`第一行第${i+1}个单元格原始样式:`, currentStyle);
+    //                 
+    //                 // 合并样式，而不是覆盖
+    //                 cell.style = {
+    //                     ...currentStyle,
+    //                     bgcolor: '#00ff00'
+    //                 };
+    //                 
+    //                 console.log(`第一行第${i+1}个单元格合并后样式:`, cell.style);
+    //             }
+    //         }
+    //     }
+    // })
+    
     return data;
 }
 

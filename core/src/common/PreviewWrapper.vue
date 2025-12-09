@@ -66,6 +66,8 @@ watch(src,()=>{
   display: flex;
   flex-direction: column;
 }
+
+.preview-wrapper * {box-sizing: content-box}
 .operate-area {
   display: flex;
   margin: 10px;
