@@ -1,3 +1,6 @@
+body {
+  margin: 0;
+}
 .x-spreadsheet {
   font-size: 13px;
   line-height: normal;
@@ -88,11 +91,18 @@
   cursor: pointer;
   text-align: center;
 }
+.x-spreadsheet-border-palette .x-spreadsheet-border-palette-left .x-spreadsheet-border-palette-cell .x-spreadsheet-icon-img {
+  opacity: 0.8;
+}
 .x-spreadsheet-border-palette .x-spreadsheet-border-palette-left .x-spreadsheet-border-palette-cell:hover {
   background-color: #eee;
 }
 .x-spreadsheet-border-palette .x-spreadsheet-border-palette-right {
   padding-left: 6px;
+}
+.x-spreadsheet-border-palette .x-spreadsheet-border-palette-right .x-spreadsheet-toolbar-btn {
+  margin-top: 0;
+  margin-bottom: 3px;
 }
 .x-spreadsheet-border-palette .x-spreadsheet-border-palette-right .x-spreadsheet-line-type {
   position: relative;
@@ -127,6 +137,16 @@
 .x-spreadsheet-dropdown .x-spreadsheet-dropdown-title {
   padding: 0 5px;
   display: inline-block;
+}
+.x-spreadsheet-dropdown .x-spreadsheet-dropdown-header .x-spreadsheet-icon.arrow-left {
+  margin-left: 4px;
+}
+.x-spreadsheet-dropdown .x-spreadsheet-dropdown-header .x-spreadsheet-icon.arrow-right {
+  width: 10px;
+  margin-right: 4px;
+}
+.x-spreadsheet-dropdown .x-spreadsheet-dropdown-header .x-spreadsheet-icon.arrow-right .arrow-down {
+  left: -130px;
 }
 /* resizer **/
 .x-spreadsheet-resizer {
@@ -388,6 +408,7 @@
 .x-spreadsheet-sort-filter .x-spreadsheet-buttons {
   margin: 10px;
 }
+.x-spreadsheet-toolbar,
 .x-spreadsheet-bottombar {
   height: 40px;
   padding: 0 30px;
@@ -431,8 +452,55 @@
   background-color: #fff;
   color: rgba(0, 0, 0, 0.65);
 }
+.x-spreadsheet-menu > li .x-spreadsheet-icon {
+  margin: 0 6px;
+}
+.x-spreadsheet-menu > li .x-spreadsheet-icon .x-spreadsheet-icon-img:hover {
+  opacity: 0.85;
+}
 .x-spreadsheet-menu > li .x-spreadsheet-dropdown {
   display: inline-block;
+}
+.x-spreadsheet-toolbar {
+  border-bottom: 1px solid #e0e2e4;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-btns {
+  display: inline-flex;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-more {
+  padding: 0 6px 6px;
+  text-align: left;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-more .x-spreadsheet-toolbar-divider {
+  margin-top: 0;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-btn {
+  flex: 0 0 auto;
+  display: inline-block;
+  border: 1px solid transparent;
+  height: 26px;
+  line-height: 26px;
+  min-width: 26px;
+  margin: 6px 1px 0;
+  padding: 0;
+  text-align: center;
+  border-radius: 2px;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-btn.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-btn:hover,
+.x-spreadsheet-toolbar .x-spreadsheet-toolbar-btn.active {
+  background: rgba(0, 0, 0, 0.08);
+}
+.x-spreadsheet-toolbar-divider {
+  display: inline-block;
+  border-right: 1px solid #e0e2e4;
+  width: 0;
+  vertical-align: middle;
+  height: 18px;
+  margin: 12px 3px 0;
 }
 .x-spreadsheet-print {
   position: absolute;
@@ -737,7 +805,18 @@ form fieldset select {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 4px 4px 0 0;
 }
-
+.x-spreadsheet-modal-header .x-spreadsheet-icon,
+.x-spreadsheet-toast-header .x-spreadsheet-icon {
+  position: absolute;
+  right: 0.8em;
+  top: 0.65em;
+  border-radius: 18px;
+}
+.x-spreadsheet-modal-header .x-spreadsheet-icon:hover,
+.x-spreadsheet-toast-header .x-spreadsheet-icon:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
+}
 .x-spreadsheet-toast-header {
   color: #F2711C;
 }
@@ -752,11 +831,207 @@ form fieldset select {
 .x-spreadsheet-toast-content {
   padding: 0.75em 1em;
 }
-
-.x-spreadsheet-menu li:first-child {
-  display: none;
+@media screen and (min-width: 320px) and (max-width: 480px) {
+  .x-spreadsheet-toolbar {
+    display: none;
+  }
 }
-
-.vue-office-excel {
-  height: 100%;
+.x-spreadsheet-icon {
+  width: 18px;
+  height: 18px;
+  margin: 1px 1px 2px 1px;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  overflow: hidden;
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img {
+  background-image: url(58eaeb4e52248a5c75936c6f4c33a370.svg);
+  position: absolute;
+  width: 262px;
+  height: 444px;
+  opacity: 0.56;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.undo {
+  left: 0;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.redo {
+  left: -18px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.print {
+  left: -36px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.paintformat {
+  left: -54px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.clearformat {
+  left: -72px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.font-bold {
+  left: -90px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.font-italic {
+  left: -108px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.underline {
+  left: -126px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.strike {
+  left: -144px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.color {
+  left: -162px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.bgcolor {
+  left: -180px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.merge {
+  left: -198px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-left {
+  left: -216px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-center {
+  left: -234px;
+  top: 0;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-right {
+  left: 0;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-top {
+  left: -18px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-middle {
+  left: -36px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.align-bottom {
+  left: -54px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.textwrap {
+  left: -72px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.autofilter {
+  left: -90px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.formula {
+  left: -108px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.arrow-down {
+  left: -126px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.arrow-right {
+  left: -144px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.link {
+  left: -162px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.chart {
+  left: -180px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.freeze {
+  left: -198px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.ellipsis {
+  left: -216px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.add {
+  left: -234px;
+  top: -18px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-all {
+  left: 0;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-inside {
+  left: -18px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-horizontal {
+  left: -36px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-vertical {
+  left: -54px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-outside {
+  left: -72px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-left {
+  left: -90px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-top {
+  left: -108px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-right {
+  left: -126px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-bottom {
+  left: -144px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.border-none {
+  left: -162px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.line-color {
+  left: -180px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.line-type {
+  left: -198px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.close {
+  left: -234px;
+  top: -36px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.chevron-down {
+  left: 0;
+  top: -54px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.chevron-up {
+  left: -18px;
+  top: -54px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.chevron-left {
+  left: -36px;
+  top: -54px;
+}
+.x-spreadsheet-icon .x-spreadsheet-icon-img.chevron-right {
+  left: -54px;
+  top: -54px;
 }
