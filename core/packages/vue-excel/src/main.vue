@@ -127,6 +127,13 @@ export default defineComponent({
                     e.stopPropagation();
                     e.preventDefault();
                 }, true);
+
+                // 禁用 sheet 标签右键菜单（在 read 模式下）
+                xs.bottombar.menuEl.el.addEventListener('contextmenu', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }, true);
+
             }
 
             // 监听 moreEl 打开，给当前 sheet 添加 active
