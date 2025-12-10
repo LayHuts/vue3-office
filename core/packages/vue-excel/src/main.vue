@@ -210,7 +210,7 @@ export default defineComponent({
                 xs = new Spreadsheet(rootRef.value, {
                     mode: 'read',
                     showToolbar: false,
-                    showContextmenu: opts.showContextmenu || false,
+                    showContextmenu: false,
                     showBottomBar: opts.showBottomBar,
                     showGrid: opts.showGrid,
                     view: opts.view,
@@ -344,5 +344,7 @@ export default defineComponent({
     </div>
 </template>
 <style lang="less">
-
+.vue-office-excel * {
+    box-sizing: content-box
+}
 </style>

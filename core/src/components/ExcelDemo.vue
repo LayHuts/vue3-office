@@ -19,9 +19,7 @@ function transformData(data){
     return data;
 }
 
-const defaultSrc = location.origin +
-    (location.pathname + '/').replace('//', '/')
-    + 'static/test-files/test.xlsx';
+const defaultSrc = location.origin + '/vue3-office/examples/dist/static/test-files/test.xlsx';
 const docxRef = ref();
 
 function beforeTransformData(data){

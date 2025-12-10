@@ -1,5 +1,6 @@
 <script setup>
-import {defineProps, watch} from 'vue';
+import { watch } from 'vue';
+import { UploadOutlined } from '@ant-design/icons-vue';
 import usePreview from '../hooks/usePreview.js';
 import useLoading from '../hooks/useLoading.js';
 import {isTest} from '../../utils/test.js';
@@ -67,7 +68,6 @@ watch(src,()=>{
   flex-direction: column;
 }
 
-.preview-wrapper * {box-sizing: content-box}
 .operate-area {
   display: flex;
   margin: 10px;

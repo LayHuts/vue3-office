@@ -1,4 +1,4 @@
-/* moreEl 下拉菜单样式增强 */
+/* moreEl 下拉菜单样式增强 设置选中样式 */
 .x-spreadsheet-dropdown-content .x-spreadsheet-item {
   transition: background-color 0.2s;
 }
@@ -11,3 +11,54 @@
   background-color: #4b89ff;
   color: white;
 }
+
+/* 解决 bottombar moreEl 下拉菜单弹出被遮挡的问题 */
+.x-spreadsheet-dropdown-content {
+  /* 设置最大高度为视口高度减去底部栏高度和一些边距 */
+  max-height: calc(75vh) !important;
+  /* 添加滚动条 */
+  overflow-y: auto !important;
+  /* 确保下拉菜单不会超出视口 */
+  box-sizing: border-box !important;
+}
+
+/* 针对 bottombar 中的下拉菜单特殊处理 */
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content {
+  /* 设置最大高度为当前位置到顶部的距离减去一些边距 */
+  max-height: calc(100vh - 150px) !important;
+  /* 确保下拉菜单向上展开时不会超出视口顶部 */
+  /* bottom: 100% !important; */
+  /* top: auto !important; */
+  /* 添加滚动条样式 */
+  overflow-y: auto !important;
+  /* 美化滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+}
+
+/* Webkit 浏览器滚动条样式 */
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 3px;
+}
+
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content::-webkit-scrollbar-thumb:hover {
+  background-color: #a1a1a1;
+}
+
+/* 确保下拉菜单项的样式不受影响 */
+.x-spreadsheet-bottombar .x-spreadsheet-dropdown-content .x-spreadsheet-item {
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+
+

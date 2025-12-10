@@ -10,9 +10,7 @@ function onError(e){
     console.log('出差',e);
     useLoading.hideLoading();
 }
-const defaultSrc = location.origin + 
-    (location.pathname + '/').replace('//', '/') 
-    + 'static/test-files/test.pptx';
+const defaultSrc = location.origin + '/vue3-office/examples/dist/static/test-files/test.pptx';
 const docxRef = ref();
 
 const pptxWidth = Math.min(960, window.innerWidth)

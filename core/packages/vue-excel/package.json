@@ -1,32 +1,37 @@
 {
   "name": "@vue3-office/excel",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Vue3 excel文档预览组件",
   "type": "module",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "exports": {
     ".": {
       "import": "./lib/index.js",
       "types": "./lib/index.d.ts"
     },
-    "./style.css": "./lib/style.css"
+    "./lib/index.css": "./lib/index.css"
   },
   "files": [
     "lib/"
   ],
   "scripts": {
-    "build": "vite build"
+    "copyType": "cp index.d.ts lib/index.d.ts",
+    "build": "vite build && pnpm copyType"
   },
   "peerDependencies": {
     "vue": "^3.0.0"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
+    "lodash": "^4.17.21",
     "x-data-spreadsheet": "^1.1.9",
-      "xlsx": "^0.18.5",
-    "lodash": "^4.17.21"
+    "xlsx": "^0.18.5"
   },
   "repository": {
     "type": "git",

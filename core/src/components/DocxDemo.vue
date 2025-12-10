@@ -11,9 +11,7 @@ function onError(e){
     useLoading.hideLoading();
 }
 
-const defaultSrc = location.origin +
-    (location.pathname + '/').replace('//', '/')
-    + 'static/test-files/test.docx';
+const defaultSrc = location.origin + '/vue3-office/examples/dist/static/test-files/test.docx';
 
 const docxRef = ref();
 const requestOptions = {
