@@ -441,7 +441,6 @@ function getStyle(cell){
  */
 export function transferExcelToSpreadSheet(workbook, options){
     let workbookData = [];
-    console.log(workbook, 'workbook');
     let sheets = [];
     workbook.eachSheet((sheet) => {
         sheets.push(sheet);
@@ -510,7 +509,6 @@ export function transferExcelToSpreadSheet(workbook, options){
         workbookData.push(sheetData);
     });
 
-    // console.log(workbookData, 'workbookData');
     workbook._worksheets = sheets;
     return {
         workbookData,

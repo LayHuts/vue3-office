@@ -8,7 +8,6 @@ function onRendered(){
     useLoading.hideLoading();
 }
 function onError(e){
-    console.log('出差',e);
     useLoading.hideLoading();
 }
 
@@ -45,19 +44,19 @@ function beforeTransformData(data){
     //                 // 使用 cell.style getter 获取完整样式
     //                 const currentStyle = cell.style;
     //                 console.log(`第一行第${i+1}个单元格原始样式:`, currentStyle);
-    //                 
+    //
     //                 // 合并样式，而不是覆盖
     //                 cell.style = {
     //                     ...currentStyle,
     //                     bgcolor: '#00ff00'
     //                 };
-    //                 
+    //
     //                 console.log(`第一行第${i+1}个单元格合并后样式:`, cell.style);
     //             }
     //         }
     //     }
     // })
-    
+
     return data;
 }
 

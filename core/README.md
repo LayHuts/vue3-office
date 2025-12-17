@@ -31,35 +31,3 @@ pnpm install
 ```bash
 pnpm dev
 ```
-
-## 构建
-
-构建所有组件包：
-```bash
-pnpm lib
-```
-
-构建单个组件包：
-```bash
-pnpm lib:vue-docx
-pnpm lib:vue-excel
-pnpm lib:vue-pdf
-pnpm lib:vue-pptx
-```
-
-构建演示应用：
-```bash
-pnpm build
-```
-
-## 发布
-
-1. 更新各组件包的版本号
-2. 构建组件包：`pnpm lib`
-3. 发布到 npm：
-```bash
-cd packages/vue-docx && npm publish
-cd packages/vue-excel && npm publish
-cd packages/vue-pdf && npm publish
-cd packages/vue-pptx && npm publish
-```

@@ -93,6 +93,7 @@ export default defineComponent({
         let sheetClickedMap = new Map();
 
         function reRender() {
+            xs && xs.sheet.reload();
             xs && xs.reRender && xs.reRender();
         }
 
@@ -190,13 +191,10 @@ export default defineComponent({
 
                 clearCache();
                 xs.loadData(workbookData);
-
                 init();
-
                 renderImage(ctx, mediasSource, workbookDataSource._worksheets[sheetIndex], offset, opts);
                 emit('rendered');
                 emit('switchSheet', 0);
-
             }).catch(e => {
                 console.warn(e);
                 mediasSource = [];
@@ -327,12 +325,36 @@ export default defineComponent({
                     _worksheets:[]
                 };
                 xs.loadData({});
-                emit('error', new Error('src属性不能为空'));
+                emit('error', new Error('src属性为空'));
             }
         });
 
         function save(fileName){
             downloadFile(fileName || `vue3-office-excel-${new Date().getTime()}.xlsx`,fileData);
+        }
+
+        // 方案5: 监听滚动事件，动态调整 dropdown 位置
+        function setupDropdownPositionFix(spreadsheet) {
+            const bottombar = spreadsheet.bottombar;
+            if (!bottombar || !bottombar.moreEl) return;
+
+            const menuEl = bottombar.el.el.querySelector('.x-spreadsheet-menu');
+
+            if (menuEl) {
+                // 监听菜单滚动
+                menuEl.addEventListener('scroll', () => {
+                    const dropdown = bottombar.moreEl.contentEl.el;
+                    if (dropdown.style.display === 'block') {
+                        // 重新计算位置
+                        const triggerEl = bottombar.moreEl.el;
+                        const rect = triggerEl.getBoundingClientRect();
+
+                        dropdown.style.position = 'fixed';
+                        dropdown.style.left = rect.left + 'px';
+                        dropdown.style.top = (rect.top - dropdown.offsetHeight - 5) + 'px';
+                    }
+                });
+            }
         }
 
         return {

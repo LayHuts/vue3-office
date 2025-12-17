@@ -27,8 +27,8 @@
   /* 设置最大高度为当前位置到顶部的距离减去一些边距 */
   max-height: calc(100vh - 150px) !important;
   /* 确保下拉菜单向上展开时不会超出视口顶部 */
-  /* bottom: 100% !important; */
-  /* top: auto !important; */
+  bottom: 100% !important;
+  top: auto !important;
   /* 添加滚动条样式 */
   overflow-y: auto !important;
   /* 美化滚动条 */
