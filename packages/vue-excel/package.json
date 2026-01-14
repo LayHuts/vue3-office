@@ -1,0 +1,53 @@
+{
+  "name": "@vue3-office/vue-excel",
+  "version": "1.0.0",
+  "description": "Excel component for Vue 3",
+  "author": {
+    "name": "LayHuts"
+  },
+  "license": "MIT",
+  "keywords": [
+    "excel",
+    "vue",
+    "viewer"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.umd.js",
+      "import": "./dist/index.mjs"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "pnpm build:lib && pnpm build:dts",
+    "build:lib": "vite build",
+    "build:dts": "vue-tsc --declaration --emitDeclarationOnly -p tsconfig.build.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
+  },
+  "peerDependencies": {
+    "vue": "^3.5.24"
+  },
+  "devDependencies": {
+    "less": "^4.2.0",
+    "@types/lodash-es": "^4.17.12",
+    "@types/tinycolor2": "^1.4.6"
+  },
+  "dependencies": {
+    "@vue3-office/common": "workspace:*",
+    "exceljs": "^4.4.0",
+    "tinycolor2": "^1.6.0",
+    "x-data-spreadsheet": "^1.1.9",
+    "xlsx": "^0.18.5",
+    "dayjs": "^1.11.19",
+    "lodash-es": "^4.17.22"
+  }
+}

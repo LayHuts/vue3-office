@@ -1,0 +1,28 @@
+{
+  "name": "@vue3-office/common",
+  "version": "1.0.0",
+  "description": "Shared utilities for vue3-office",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.umd.js",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm build:lib && pnpm build:dts",
+    "build:lib": "vite build",
+    "build:dts": "vue-tsc --declaration --emitDeclarationOnly -p tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.24"
+  }
+}

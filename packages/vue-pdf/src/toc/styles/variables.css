@@ -1,0 +1,41 @@
+/**
+ * CSS 变量定义
+ * 仅在 .pdf-viewer 作用域内生效，避免污染全局样式
+ */
+.vue-pdf-viewer {
+  /* 主题色 */
+  --pdf-primary-color: #1a73e8;
+  --pdf-primary-light: #8ab4f8;
+  --pdf-primary-bg: rgba(26, 115, 232, 0.15);
+  --pdf-primary-shadow: rgba(26, 115, 232, 0.3);
+
+  /* 背景色 */
+  --pdf-bg-dark: #2d3134;
+  --pdf-bg-darker: #323639;
+  --pdf-bg-panel: #3c4043;
+  --pdf-bg-hover: rgba(255, 255, 255, 0.1);
+  --pdf-bg-active: rgba(255, 255, 255, 0.08);
+
+  /* 文字色 */
+  --pdf-text-primary: #e8eaed;
+  --pdf-text-secondary: #9aa0a6;
+  --pdf-text-muted: #999;
+
+  /* 边框色 */
+  --pdf-border-color: #5f6368;
+  --pdf-border-light: rgba(255, 255, 255, 0.2);
+
+  /* 滚动条 */
+  --pdf-scrollbar-track: #3c4043;
+  --pdf-scrollbar-thumb: #5f6368;
+  --pdf-scrollbar-thumb-hover: #80868b;
+  --pdf-scrollbar-width: 14px;
+
+  /* 阴影 */
+  --pdf-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --pdf-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --pdf-shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+  /* 动画 */
+  --pdf-transition-fast: 0.2s ease;
+}

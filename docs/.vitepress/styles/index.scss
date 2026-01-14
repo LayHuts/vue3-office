@@ -1,0 +1,51 @@
+:root{
+  --vp-home-hero-image-filter: blur(100px);
+  --vp-home-hero-image-background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1080" height="1080" viewBox="0 0 1080 1080" xml:space="preserve"><g transform="matrix(16.38 0 0 12.52 540.17 412.6)" id="13ef2270-b5eb-4f46-b1a2-b1016b0874b1" ><rect style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(153,236,199); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke" x="-33.0835" y="-33.0835" rx="0" ry="0" width="66.167" height="66.167" /></g><g transform="matrix(16.56 0 0 12.26 540 1225.25)" id="397aaf24-ed57-4d7e-afca-cff19718b480" ><rect style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,236,255); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke" x="-33.0835" y="-33.0835" rx="0" ry="0" width="66.167" height="66.167" /></g></svg>');
+}
+
+.button-example {
+  background-color: var(--vp-c-brand-2);
+  color: white;
+  padding: 10px;
+  margin: 7px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.button-example:hover {
+  background-color: var(--vp-c-brand-1);
+}
+
+.checkbox-example {
+  width: 15px;
+  height: 15px;
+}
+
+.input-example {
+  appearance: none;
+  padding: 7px 15px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  outline: none;
+  
+}
+.input-example:focus{
+  cursor: auto;
+  border-color: var(--vp-c-brand-1);
+}
+
+.select-example {
+  background-color: var(--vp-c-brand-2);
+  color: white;
+  padding: 10px;
+  margin: 7px;
+  border-radius: 4px;
+  border: none;
+}
+
+.vue-pdf-container {
+  display: flex; 
+  align-items:center; 
+  flex-direction: column
+}

@@ -1,0 +1,31 @@
+{
+  "name": "vue3-office",
+  "version": "1.0.0",
+  "description": "vue3-office",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter vue-pdf-playground dev",
+    "dev:docs": "pnpm --filter @tato30/vue-pdf build:lib && pnpm --filter vue-pdf-docs dev",
+    "test": "pnpm --filter vue-pdf-tests test",
+    "build": "pnpm test && pnpm --filter @tato30/vue-pdf build",
+    "build:docs": "pnpm --filter @tato30/vue-pdf build:lib && pnpm --filter vue-pdf-docs build",
+    "lint:fix": "eslint --fix ."
+  },
+  "devDependencies": {
+    "@rushstack/eslint-patch": "^1.10.3",
+    "@types/node": "^22.12.0",
+    "@vitejs/plugin-vue": "^5.2.0",
+    "@vue/eslint-config-typescript": "^13.0.0",
+    "eslint": "^8.57.0",
+    "typescript": "~5.7.0",
+    "vite": "^7.1.9",
+    "vue": "^3.5.24",
+    "vue-tsc": "^2.2.0"
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.22.0"
+}

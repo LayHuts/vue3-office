@@ -1,0 +1,53 @@
+{
+  "name": "@vue3-office/vue-pdf",
+  "version": "1.0.0",
+  "description": "PDF component for Vue 3",
+  "author": {
+    "name": "LayHuts"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/TaTo30/vue-pdf/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TaTo30/vue-pdf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TaTo30/vue-pdf/issues"
+  },
+  "keywords": [
+    "pdf",
+    "vue",
+    "viewer"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.umd.js",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css",
+    "./src/*": "./src/*"
+  },
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "pnpm build:lib && pnpm build:dts",
+    "build:lib": "vite build",
+    "build:dts": "vue-tsc --declaration --emitDeclarationOnly -p tsconfig.build.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
+  },
+  "peerDependencies": {
+    "vue": "^3.5.24"
+  },
+  "dependencies": {
+    "@vue3-office/common": "workspace:*",
+    "pdfjs-dist": "5.4.449"
+  }
+}

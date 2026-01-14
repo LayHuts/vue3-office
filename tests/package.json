@@ -1,0 +1,18 @@
+{
+  "name": "vue-pdf-tests",
+  "version": "1.0.0",
+  "description": "vue-pdf-tests",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vue3-office/vue-pdf": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/browser": "^3.2.4",
+    "@vue/test-utils": "^2.4.6",
+    "playwright": "^1.55.1",
+    "vitest": "^3.2.4"
+  }
+}

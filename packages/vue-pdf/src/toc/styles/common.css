@@ -1,0 +1,109 @@
+/**
+ * 公共样式
+ */
+
+/* Loading Spinner 动画 */
+@keyframes vue-pdf-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 通用 Loading Spinner */
+.vue-pdf-spinner {
+  border-radius: 50%;
+  animation: vue-pdf-spin 1s linear infinite;
+}
+
+.vue-pdf-spinner--sm {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--pdf-primary-color);
+}
+
+.vue-pdf-spinner--md {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--pdf-primary-color);
+}
+
+.vue-pdf-spinner--lg {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--pdf-primary-color);
+}
+
+/* 深色背景下的 spinner */
+.vue-pdf-spinner--dark {
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: var(--pdf-primary-color);
+}
+
+/* 滚动条样式 mixin（需要在组件中应用） */
+.vue-pdf-scrollbar::-webkit-scrollbar {
+  width: var(--pdf-scrollbar-width);
+  height: var(--pdf-scrollbar-width);
+}
+
+.vue-pdf-scrollbar::-webkit-scrollbar-track {
+  background: var(--pdf-scrollbar-track);
+}
+
+.vue-pdf-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--pdf-scrollbar-thumb);
+  border-radius: 7px;
+  border: 2px solid var(--pdf-scrollbar-track);
+}
+
+.vue-pdf-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--pdf-scrollbar-thumb-hover);
+}
+
+.vue-pdf-scrollbar::-webkit-scrollbar-corner {
+  background: var(--pdf-scrollbar-track);
+}
+
+/* 加载状态容器 */
+.vue-pdf-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--pdf-text-secondary);
+  text-align: center;
+  gap: 16px;
+}
+
+.vue-pdf-loading-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 空状态容器 */
+.vue-pdf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--pdf-text-secondary);
+  text-align: center;
+}
+
+.vue-pdf-empty-state p {
+  margin: 16px 0 0 0;
+  font-size: 14px;
+}
+
+/* 居中 flex 容器 */
+.vue-pdf-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 列方向 flex */
+.vue-pdf-flex-col {
+  display: flex;
+  flex-direction: column;
+}

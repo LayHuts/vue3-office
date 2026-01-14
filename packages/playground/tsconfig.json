@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "skipLibCheck": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vue-office/vue-pdf": [
+        "../vue-pdf/src"
+      ],
+      "@samples/*": ["../../samples/*"]
+    }
+  },
+  "include": [
+    "vite.config.ts",
+    "src/**/*.vue",
+    "src/**/*.ts",
+      "src/env.d.ts",
+      "src/main.ts",
+      "src/App.vue"
+  ]
+}
