@@ -1,6 +1,6 @@
 <template>
   <div class="tree-node">
-    <div class="treeItem" :class="{ selected: item === currentTreeItem, withNesting: hasChildren }" :style="{ paddingLeft: `${level * 16 + 8}px` }">
+    <div class="treeItem" :class="{ selected: item === currentTreeItem, withNesting: hasChildren }" :style="{ paddingLeft: `${level * 20 + 8}px` }">
       <div v-if="hasChildren" class="treeItemToggler" :class="{ treeItemsHidden: !expanded }" @click.stop="toggleExpand"></div>
       <div v-else class="treeItemToggler-placeholder"></div>
       <a :href="getDestinationHash(item.dest)" class="outline-link" :style="linkStyle" @click.prevent="handleClick">
@@ -16,14 +16,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { PDFLinkService } from '../services'
-
-interface OutlineItem {
-  title: string
-  dest: any
-  items?: OutlineItem[]
-  bold?: boolean
-  italic?: boolean
-}
+import type { OutlineItem } from '../types'
 
 const props = defineProps<{
   item: OutlineItem
@@ -46,7 +39,14 @@ const linkStyle = computed(() => {
 function toggleExpand() { expanded.value = !expanded.value }
 function handleClick() { emit('item-click', props.item) }
 function getDestinationHash(dest: any): string { return props.linkService.getDestinationHash(dest) }
-function normalizeTextContent(str: string): string { return str.replace(/[\x00-\x1F]/g, m => (m === '\x00' ? '' : ' ')) || '\u2013' }
+function normalizeTextContent(str: string): string { 
+  const result = str
+    .replace(/[\x00-\x1F]/g, '') // 控制字符
+    .trim() // 去除首尾空格
+    || '\u2013'
+  console.log('[OutlineTreeNode] title:', JSON.stringify(str), '-> level:', props.level, '-> result:', JSON.stringify(result), '-> hasChildren:', hasChildren.value)
+  return result
+}
 </script>
 
 <style scoped>
@@ -58,6 +58,6 @@ function normalizeTextContent(str: string): string { return str.replace(/[\x00-\
 .treeItemToggler:not(.treeItemsHidden)::before { transform: rotate(90deg); }
 .treeItemToggler:hover::before { border-color: transparent transparent transparent var(--pdf-text-primary); }
 .treeItemToggler-placeholder { width: 16px; height: 16px; margin-right: 4px; flex-shrink: 0; }
-.outline-link { color: var(--pdf-text-primary); font-size: 13px; line-height: 1.4; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+.outline-link { color: var(--pdf-text-primary); font-size: 13px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
 .outline-link:hover { color: var(--pdf-primary-light); }
 </style>

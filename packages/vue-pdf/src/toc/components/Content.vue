@@ -245,6 +245,67 @@ function scrollToDestination(destination: any, smooth = true) {
   scrollToPage(destination.pageNumber || 1, smooth)
 }
 
+/**
+ * 根据 PDF destination 数组滚动到精确位置
+ * destination 格式: [pageRef, { name: 'XYZ' | 'Fit' | 'FitH' | ... }, x, y, zoom]
+ */
+function scrollToDestinationArray(pageNumber: number, destArray: any[]) {
+  const pageEl = pageRefs.value.get(pageNumber)
+  if (!pageEl || !containerRef.value) {
+    cacheManager.preloadAround(pageNumber, props.totalPages)
+    forceRenderUpdate.value++
+    scrollingToPage = pageNumber
+    lastEmittedPage = pageNumber
+    setTimeout(() => scrollToDestinationArray(pageNumber, destArray), 100)
+    return
+  }
+
+  scrollingToPage = pageNumber
+  lastEmittedPage = pageNumber
+  cacheManager.preloadAround(pageNumber, props.totalPages)
+  forceRenderUpdate.value++
+
+  // 解析 destination 类型和坐标
+  const destType = destArray[1]
+  const destName = typeof destType === 'object' ? destType.name : destType
+
+  // 获取页面原始尺寸和当前缩放
+  const pageHeight = defaultPageSize.value.height
+  const scale = targetScale.value
+
+  let offsetY = 0
+
+  if (destName === 'XYZ') {
+    // XYZ: [pageRef, { name: 'XYZ' }, x, y, zoom]
+    // y 是从页面底部算起的坐标（PDF 坐标系原点在左下角）
+    const y = destArray[3]
+    if (y !== null && y !== undefined) {
+      // 转换为从顶部算起的偏移量，并应用缩放
+      offsetY = (pageHeight - y) * scale
+    }
+  } else if (destName === 'FitH' || destName === 'FitBH') {
+    // FitH: [pageRef, { name: 'FitH' }, top]
+    const top = destArray[2]
+    if (top !== null && top !== undefined) {
+      offsetY = (pageHeight - top) * scale
+    }
+  }
+  // Fit, FitV, FitR 等其他类型直接滚动到页面顶部
+
+  // 计算滚动位置
+  const containerRect = containerRef.value.getBoundingClientRect()
+  const pageRect = pageEl.getBoundingClientRect()
+  const currentScrollTop = containerRef.value.scrollTop
+
+  // 页面相对于容器的位置 + 页面内偏移
+  const targetScrollTop = currentScrollTop + (pageRect.top - containerRect.top) + offsetY
+
+  containerRef.value.scrollTo({
+    top: Math.max(0, targetScrollTop),
+    behavior: 'smooth'
+  })
+}
+
 watch(() => props.scale, () => {
   const now = Date.now()
   lastScaleChangeTime = now
@@ -337,7 +398,14 @@ function recalculateScale() {
 
 onMounted(() => {
   props.eventBus.on('pagenumberchange', (evt: any) => {
-    if (evt.pageNumber && evt.pageNumber !== props.currentPage) scrollToPage(evt.pageNumber, true)
+    if (evt.pageNumber) {
+      // 如果有 destArray，使用精确坐标跳转
+      if (evt.destArray && Array.isArray(evt.destArray)) {
+        scrollToDestinationArray(evt.pageNumber, evt.destArray)
+      } else if (evt.pageNumber !== props.currentPage) {
+        scrollToPage(evt.pageNumber, true)
+      }
+    }
   })
 
   // 使用 ResizeObserver 监听容器尺寸变化

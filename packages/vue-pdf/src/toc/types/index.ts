@@ -6,9 +6,9 @@
 export interface OutlineItem {
   title: string
   dest: any
-  items: OutlineItem[]
-  bold: boolean
-  italic: boolean
+  items?: OutlineItem[]
+  bold?: boolean
+  italic?: boolean
 }
 
 /** 扁平化目录项（用于构建树形结构） */

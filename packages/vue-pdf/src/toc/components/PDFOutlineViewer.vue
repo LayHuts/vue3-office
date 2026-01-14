@@ -7,15 +7,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import type { EventBus, PDFLinkService } from '../services'
+import type { OutlineItem } from '../types'
 import OutlineTreeNode from './OutlineTreeNode.vue'
-
-interface OutlineItem {
-  title: string
-  dest: any
-  items?: OutlineItem[]
-  bold?: boolean
-  italic?: boolean
-}
 
 const props = defineProps<{
   outline: OutlineItem[]
