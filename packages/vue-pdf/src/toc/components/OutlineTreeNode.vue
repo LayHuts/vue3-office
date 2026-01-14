@@ -39,12 +39,12 @@ const linkStyle = computed(() => {
 function toggleExpand() { expanded.value = !expanded.value }
 function handleClick() { emit('item-click', props.item) }
 function getDestinationHash(dest: any): string { return props.linkService.getDestinationHash(dest) }
-function normalizeTextContent(str: string): string { 
+function normalizeTextContent(str: string): string {
   const result = str
     .replace(/[\x00-\x1F]/g, '') // 控制字符
     .trim() // 去除首尾空格
     || '\u2013'
-  console.log('[OutlineTreeNode] title:', JSON.stringify(str), '-> level:', props.level, '-> result:', JSON.stringify(result), '-> hasChildren:', hasChildren.value)
+  // console.log('[OutlineTreeNode] title:', JSON.stringify(str), '-> level:', props.level, '-> result:', JSON.stringify(result), '-> hasChildren:', hasChildren.value)
   return result
 }
 </script>

@@ -265,40 +265,74 @@ function scrollToDestinationArray(pageNumber: number, destArray: any[]) {
   cacheManager.preloadAround(pageNumber, props.totalPages)
   forceRenderUpdate.value++
 
+  // 检查页面是否已渲染完成
+  if (!isPageRendered(pageNumber)) {
+    // 页面未渲染，先瞬间跳转到页面位置（触发渲染）
+    const contentOffset = pdfContentRef.value ? pdfContentRef.value.offsetTop : 0
+    const jumpTarget = pageEl.offsetTop + contentOffset - 10
+    containerRef.value.scrollTop = jumpTarget
+    
+    // 等待渲染完成
+    const checkRendered = () => {
+      if (isPageRendered(pageNumber)) {
+        // 渲染完成后直接计算并滚动到精确位置（不依赖当前 scrollTop）
+        requestAnimationFrame(() => {
+          scrollToExactPosition(pageNumber, destArray)
+        })
+      } else {
+        setTimeout(checkRendered, 30)
+      }
+    }
+    setTimeout(checkRendered, 30)
+    return
+  }
+
+  // 页面已渲染，直接精确定位
+  scrollToExactPosition(pageNumber, destArray)
+}
+
+/**
+ * 滚动到页面内的精确位置（页面必须已渲染）
+ */
+function scrollToExactPosition(pageNumber: number, destArray: any[]) {
+  const pageEl = pageRefs.value.get(pageNumber)
+  if (!pageEl || !containerRef.value) return
+
   // 解析 destination 类型和坐标
   const destType = destArray[1]
   const destName = typeof destType === 'object' ? destType.name : destType
 
-  // 获取页面原始尺寸和当前缩放
-  const pageHeight = defaultPageSize.value.height
-  const scale = targetScale.value
+  // PDF 原始页面高度
+  const pdfPageHeight = defaultPageSize.value.height
+  
+  // 从页面容器获取当前缩放后的尺寸
+  const pageRect = pageEl.getBoundingClientRect()
+  const actualScale = pageRect.height / pdfPageHeight
 
   let offsetY = 0
+  let destY = null
 
   if (destName === 'XYZ') {
-    // XYZ: [pageRef, { name: 'XYZ' }, x, y, zoom]
-    // y 是从页面底部算起的坐标（PDF 坐标系原点在左下角）
-    const y = destArray[3]
-    if (y !== null && y !== undefined) {
-      // 转换为从顶部算起的偏移量，并应用缩放
-      offsetY = (pageHeight - y) * scale
+    destY = destArray[3]
+    if (destY !== null && destY !== undefined) {
+      offsetY = (pdfPageHeight - destY) * actualScale
     }
   } else if (destName === 'FitH' || destName === 'FitBH') {
-    // FitH: [pageRef, { name: 'FitH' }, top]
-    const top = destArray[2]
-    if (top !== null && top !== undefined) {
-      offsetY = (pageHeight - top) * scale
+    destY = destArray[2]
+    if (destY !== null && destY !== undefined) {
+      offsetY = (pdfPageHeight - destY) * actualScale
     }
   }
-  // Fit, FitV, FitR 等其他类型直接滚动到页面顶部
 
-  // 计算滚动位置
-  const containerRect = containerRef.value.getBoundingClientRect()
-  const pageRect = pageEl.getBoundingClientRect()
-  const currentScrollTop = containerRef.value.scrollTop
+  // 计算页面在滚动容器中的绝对偏移位置
+  const contentOffset = pdfContentRef.value ? pdfContentRef.value.offsetTop : 0
+  const pageOffsetTop = pageEl.offsetTop + contentOffset
+  
+  // 目标滚动位置 = 页面顶部位置 + 页面内偏移
+  const targetScrollTop = pageOffsetTop + offsetY
 
-  // 页面相对于容器的位置 + 页面内偏移
-  const targetScrollTop = currentScrollTop + (pageRect.top - containerRect.top) + offsetY
+  // 禁用滚动事件处理，避免冲突
+  scrollingToPage = pageNumber
 
   containerRef.value.scrollTo({
     top: Math.max(0, targetScrollTop),
@@ -334,6 +368,8 @@ watch(() => props.scale, () => {
 
 watch(() => props.currentPage, (newPage, oldPage) => {
   if (newPage === oldPage || internalPageChange) return
+  // 如果正在进行目录精确跳转，跳过普通的页面滚动
+  if (scrollingToPage === newPage) return
   cacheManager.preloadAround(newPage, props.totalPages)
   forceRenderUpdate.value++
   nextTick(() => { const pageJump = Math.abs(newPage - oldPage); scrollToPage(newPage, pageJump <= 5) })

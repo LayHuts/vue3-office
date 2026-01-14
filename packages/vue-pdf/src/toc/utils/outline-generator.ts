@@ -107,7 +107,6 @@ export async function generateOutlineFromAnnotations(
         uniqueItems.push(item)
       }
     }
-    console.log(uniqueItems);
     // 构建树形结构
     return buildOutlineTree(uniqueItems)
   } catch (error) {
@@ -131,7 +130,6 @@ export function buildOutlineTree(items: FlatOutlineItem[]): OutlineItem[] {
   let useXCoord = xValues.length > 1
 
   if (useXCoord) {
-    console.log('Using X coordinate for levels, unique X values:', xValues)
     const xToLevel = new Map<number, number>()
     xValues.forEach((x, index) => xToLevel.set(x, index))
     for (const item of items) {
@@ -144,7 +142,6 @@ export function buildOutlineTree(items: FlatOutlineItem[]): OutlineItem[] {
     fontSizes.sort((a, b) => b - a)
 
     if (fontSizes.length > 1) {
-      console.log('Using font size for levels, unique sizes:', fontSizes)
       const sizeToLevel = new Map<number, number>()
       fontSizes.forEach((size, index) => sizeToLevel.set(size, index))
       for (const item of items) {
@@ -153,7 +150,6 @@ export function buildOutlineTree(items: FlatOutlineItem[]): OutlineItem[] {
       }
     } else {
       // 方法3：根据标题模式判断层级
-      console.log('Using title pattern for levels')
       for (const item of items) {
         item.level = getTitleLevel(item.title)
       }
@@ -187,7 +183,7 @@ export function buildOutlineTree(items: FlatOutlineItem[]): OutlineItem[] {
     stack.push({ level: item.level || 0, node })
   }
 
-  console.log('Tree built:', root.length, 'root items', root)
+  // console.log('Tree built:', root.length, 'root items', root)
 
   return root
 }
@@ -268,8 +264,8 @@ export function convertPdfOutline(outline: any[]): OutlineItem[] {
         return {
           title: cleanTitle,
           dest: node.dest,
-          items: node.items && node.items.length > 0 
-            ? convert(node.items, level + 1) 
+          items: node.items && node.items.length > 0
+            ? convert(node.items, level + 1)
             : [],
           bold: node.bold || level === 0,
           italic: node.italic || false,
@@ -280,8 +276,8 @@ export function convertPdfOutline(outline: any[]): OutlineItem[] {
   }
 
   // 扁平结构，根据标题模式重建层级
-  console.log('[convertPdfOutline] Flat outline detected, rebuilding tree by title pattern')
-  
+  // console.log('[convertPdfOutline] Flat outline detected, rebuilding tree by title pattern')
+
   interface FlatNode {
     title: string
     dest: any
