@@ -472,11 +472,11 @@ defineExpose({
       @highlight="emit('highlight', $event)"
       @text-loaded="emit('textLoaded', $event)"
     />
-    <XFALayer 
+    <XFALayer
       :page="internalProps.page"
       :viewport="internalProps.viewport"
       :document="internalProps.document"
-      @xfa-loaded="emit('xfaLoaded')" 
+      @xfa-loaded="emit('xfaLoaded')"
     />
     <div v-show="loading" ref="loadingLayer" style="position: absolute">
       <slot />
