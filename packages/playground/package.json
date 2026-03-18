@@ -1,10 +1,28 @@
 {
-  "name": "vue-pdf-playground",
+  "name": "@vue3-office/playground",
   "version": "1.0.0",
   "description": "vue-pdf-playground",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LayHuts/vue3-office.git",
+    "directory": "packages/playground"
+  },
+  "homepage": "https://github.com/LayHuts/vue3-office",
+  "bugs": {
+    "url": "https://github.com/LayHuts/vue3-office/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "audio",
+    "player",
+    "vue",
+    "music",
+    "vue3"
+  ],
   "private": true,
   "scripts": {
-    "dev": "vite ."
+    "dev": "vite .",
+    "build": "vite build ."
   },
 
   "devDependencies": {

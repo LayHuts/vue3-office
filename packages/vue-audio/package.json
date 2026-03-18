@@ -1,15 +1,26 @@
 {
   "name": "@vue3-office/vue-audio",
   "version": "1.0.0",
-  "description": "Excel component for Vue 3",
+  "description": "Audio component for Vue 3",
   "author": {
     "name": "LayHuts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LayHuts/vue3-office.git",
+    "directory": "packages/vue-audio"
+  },
+  "homepage": "https://github.com/LayHuts/vue3-office",
+  "bugs": {
+    "url": "https://github.com/LayHuts/vue3-office/issues"
+  },
   "license": "MIT",
   "keywords": [
-    "excel",
+    "audio",
+    "player",
     "vue",
-    "viewer"
+    "music",
+    "vue3"
   ],
   "exports": {
     ".": {

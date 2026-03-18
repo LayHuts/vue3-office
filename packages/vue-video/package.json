@@ -1,15 +1,25 @@
 {
   "name": "@vue3-office/vue-video",
   "version": "1.0.0",
-  "description": "Excel component for Vue 3",
+  "description": "Video component for Vue 3",
   "author": {
     "name": "LayHuts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LayHuts/vue3-office.git",
+    "directory": "packages/vue-video"
+  },
+  "homepage": "https://github.com/LayHuts/vue3-office",
+  "bugs": {
+    "url": "https://github.com/LayHuts/vue3-office/issues"
+  },
   "license": "MIT",
   "keywords": [
-    "excel",
+    "video",
+    "player",
     "vue",
-    "viewer"
+    "xgplayer"
   ],
   "exports": {
     ".": {

@@ -5,6 +5,15 @@
   "author": {
     "name": "LayHuts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LayHuts/vue3-office.git",
+    "directory": "packages/vue-excel"
+  },
+  "homepage": "https://github.com/LayHuts/vue3-office",
+  "bugs": {
+    "url": "https://github.com/LayHuts/vue3-office/issues"
+  },
   "license": "MIT",
   "keywords": [
     "excel",
