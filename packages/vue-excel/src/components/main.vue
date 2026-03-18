@@ -175,7 +175,6 @@ onBeforeUnmount(() => {
 
 watch(() => props.url, (url, oldUrl) => {
   if (url !== oldUrl) {
-    console.log('=============', url, oldUrl);
     requestFileData(url, props.requestOptions).then((data) => {
       loadExcel(data, spreadsheetObject, transferOptions, workDataCache.ctx2d, callback);
     }).catch((error: Error) => {

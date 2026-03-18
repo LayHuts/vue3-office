@@ -7,10 +7,17 @@
     "dev": "vite ."
   },
 
+  "devDependencies": {
+    "axios": "^1.13.4",
+    "cheerio": "^1.2.0",
+    "tsx": "^4.21.0"
+  },
   "dependencies": {
     "@vue3-office/vue-pdf": "workspace:*",
     "@vue3-office/vue-excel": "workspace:*",
     "@vue3-office/vue-docx": "workspace:*",
+    "@vue3-office/vue-video": "workspace:*",
+    "@vue3-office/vue-audio": "workspace:*",
     "@ant-design/icons-vue": "^7.0.1",
     "ant-design-vue": "^4.2.6",
     "vue-router": "^4.6.4"

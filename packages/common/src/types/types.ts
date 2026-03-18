@@ -11,6 +11,7 @@ enum MimeType {
   PNG  = 'image/png',
   JPG  = 'image/jpeg',
   ZIP  = 'application/zip',
+  MP4 = 'video/mp4',
   UNKNOWN = 'application/octet-stream'
 }
 

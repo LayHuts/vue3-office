@@ -7,9 +7,11 @@ const route = useRoute();
 type RouteKey =
   | 'docx'
   | 'excel'
-  | 'pdf'
+  | 'pdf-one'
   | 'pdf-toc'
-  | 'pptx';
+  | 'pptx'
+  | 'audio'
+  | 'video';
 
 const current = ref<RouteKey[]>([]);
 
@@ -17,7 +19,7 @@ watch(
   () => route.path,
   (path) => {
     let currentRoute: RouteKey = 'docx';
-
+    console.log(path);
     if (path.includes('excel')) {
       currentRoute = 'excel';
     } else if (path.includes('pdf-one')) {
@@ -26,6 +28,10 @@ watch(
       currentRoute = 'pdf-toc';
     } else if (path.includes('pptx')) {
       currentRoute = 'pptx';
+    }else if (path.includes('audio')) {
+      currentRoute = 'audio';
+    }else if (path.includes('video')) {
+      currentRoute = 'video';
     }
 
     current.value = [currentRoute];
@@ -58,6 +64,12 @@ function go({ key }: { key: RouteKey }) {
       </a-menu-item>
       <a-menu-item key="pptx">
         pptx文件预览
+      </a-menu-item>
+      <a-menu-item key="audio">
+        音频文件播放
+      </a-menu-item>
+      <a-menu-item key="video">
+        视频文件播放
       </a-menu-item>
     </a-menu>
     <router-view/>

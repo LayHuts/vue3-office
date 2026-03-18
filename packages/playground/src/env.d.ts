@@ -5,8 +5,8 @@ declare module "*.vue" {
 }
 
 declare module "@samples/*.pdf" {
-  const pdfurl: string;
-  export default pdfurl;
+  const pdfUrl: string;
+  export default pdfUrl;
 }
 
 declare module "@samples/*.xlsx" {
@@ -17,4 +17,19 @@ declare module "@samples/*.xlsx" {
 declare module "@samples/*.docx" {
   const docxUrl: string;
   export default docxUrl;
+}
+
+declare module "@samples/*.mp3" {
+  const audioUrl: string;
+  export default audioUrl;
+}
+
+declare module "@samples/*.mp4" {
+  const videoUrl: string;
+  export default videoUrl;
+}
+
+declare module "@samples/*.jpg" {
+  const imageUrl: string;
+  export default imageUrl;
 }

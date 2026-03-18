@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter vue-pdf-playground dev",
-    "dev:docs": "pnpm --filter @tato30/vue-pdf build:lib && pnpm --filter vue-pdf-docs dev",
+    "dev:docs": "pnpm --filter @vue3-office/vue-docx build:lib && pnpm --filter vue-pdf-docs dev",
     "test": "pnpm --filter vue-pdf-tests test",
-    "build": "pnpm test && pnpm --filter @tato30/vue-pdf build",
-    "build:docs": "pnpm --filter @tato30/vue-pdf build:lib && pnpm --filter vue-pdf-docs build",
+    "build": "pnpm test && pnpm --filter @vue3-office/vue-pdf build",
+    "build:docs": "pnpm --filter @vue3-office/vue-docx build:lib && pnpm --filter vue-pdf-docs build",
     "lint:fix": "eslint --fix ."
   },
   "devDependencies": {

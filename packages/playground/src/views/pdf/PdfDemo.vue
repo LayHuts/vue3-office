@@ -25,3 +25,9 @@ watch(() => defaultUrl, () => {
     </template>
   </PreviewWrapper>
 </template>
+<style scoped>
+:deep(.preview-content) {
+  background-color: #808080;
+  overflow: auto;
+}
+</style>
