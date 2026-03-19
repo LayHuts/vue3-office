@@ -14,12 +14,14 @@ export default mergeConfig(
         cssFileName: 'style'
       },
       rollupOptions: {
-        external: ['vue', 'hls.js'],
+        external: ['vue', 'hls.js', 'colorthief', '@vue3-office/common'],
         output: {
           exports: 'named',
           globals: {
-            'vue': 'vue',
-            'hls.js': 'Hls'
+            'vue': 'Vue',
+            'hls.js': 'Hls',
+            'colorthief': 'ColorThief',
+            '@vue3-office/common': 'Vue3OfficeCommon',
           },
         },
       },

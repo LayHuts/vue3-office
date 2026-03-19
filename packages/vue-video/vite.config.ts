@@ -14,11 +14,15 @@ export default mergeConfig(
         cssFileName: 'style'
       },
       rollupOptions: {
-        external: ['vue',],
+        external: ['vue', '@vue3-office/common', 'xgplayer', 'xgplayer-music', 'xgplayer/es/player'],
         output: {
           exports: 'named',
           globals: {
-            'vue': 'vue',
+            'vue': 'Vue',
+            '@vue3-office/common': 'Vue3OfficeCommon',
+            'xgplayer': 'Player',
+            'xgplayer-music': 'XgplayerMusic',
+            'xgplayer/es/player': 'Player',
           },
         },
       },

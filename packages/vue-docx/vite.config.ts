@@ -14,11 +14,13 @@ export default mergeConfig(
         cssFileName: 'style'
       },
       rollupOptions: {
-        external: ['vue', 'docx-preview'],
+        external: ['vue', 'docx-preview', '@vue3-office/common'],
         output: {
           exports: 'named',
           globals: {
-            'vue': 'vue',
+            'vue': 'Vue',
+            'docx-preview': 'docxPreview',
+            '@vue3-office/common': 'Vue3OfficeCommon',
           },
         },
       },

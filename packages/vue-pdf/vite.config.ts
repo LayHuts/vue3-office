@@ -14,12 +14,13 @@ export default mergeConfig(
         cssFileName: 'style'
       },
       rollupOptions: {
-        external: ['vue', 'pdfjs-dist'],
+        external: ['vue', 'pdfjs-dist', '@vue3-office/common'],
         output: {
           exports: 'named',
           globals: {
-            'vue': 'vue',
-            'pdfjs-dist': 'PDFJS',
+            'vue': 'Vue',
+            'pdfjs-dist': 'pdfjsLib',
+            '@vue3-office/common': 'Vue3OfficeCommon',
           },
         },
       },

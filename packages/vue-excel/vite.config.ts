@@ -14,12 +14,19 @@ export default mergeConfig(
         cssFileName: 'style'
       },
       rollupOptions: {
-        external: ['vue', 'exceljs', 'x-data-spreadsheet', 'lodash'],
+        external: ['vue', 'exceljs', 'exceljs/dist/exceljs', 'x-data-spreadsheet', 'lodash-es', 'dayjs', 'tinycolor2', 'xlsx', '@vue3-office/common'],
         output: {
           exports: 'named',
           globals: {
-            'vue': 'vue',
-            'lodash': 'lodash',
+            'vue': 'Vue',
+            'exceljs': 'ExcelJS',
+            'exceljs/dist/exceljs': 'ExcelJS',
+            'x-data-spreadsheet': 'Spreadsheet',
+            'lodash-es': '_',
+            'dayjs': 'dayjs',
+            'tinycolor2': 'tinycolor',
+            'xlsx': 'XLSX',
+            '@vue3-office/common': 'Vue3OfficeCommon',
           },
         },
       },

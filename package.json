@@ -30,7 +30,20 @@
   "scripts": {
     "dev": "pnpm --filter @vue3-office/playground dev",
     "build:playground": "pnpm --filter @vue3-office/playground build",
-    "build": "pnpm --filter @vue3-office/vue-pdf build",
+    "build:common": "pnpm --filter @vue3-office/common build",
+    "build:pdf": "pnpm --filter @vue3-office/vue-pdf build",
+    "build:docx": "pnpm --filter @vue3-office/vue-docx build",
+    "build:excel": "pnpm --filter @vue3-office/vue-excel build",
+    "build:video": "pnpm --filter @vue3-office/vue-video build",
+    "build:audio": "pnpm --filter @vue3-office/vue-audio build",
+    "build:all": "pnpm build:common && pnpm build:pdf && pnpm build:docx && pnpm build:excel && pnpm build:video && pnpm build:audio",
+    "publish:common": "pnpm --filter @vue3-office/common publish --access public --no-git-checks",
+    "publish:pdf": "pnpm --filter @vue3-office/vue-pdf publish --access public --no-git-checks",
+    "publish:docx": "pnpm --filter @vue3-office/vue-docx publish --access public --no-git-checks",
+    "publish:excel": "pnpm --filter @vue3-office/vue-excel publish --access public --no-git-checks",
+    "publish:video": "pnpm --filter @vue3-office/vue-video publish --access public --no-git-checks",
+    "publish:audio": "pnpm --filter @vue3-office/vue-audio publish --access public --no-git-checks",
+    "publish:all": "pnpm build:all && pnpm publish:common && pnpm publish:pdf && pnpm publish:docx && pnpm publish:excel && pnpm publish:video && pnpm publish:audio",
     "lint:fix": "eslint --fix ."
   },
   "devDependencies": {
