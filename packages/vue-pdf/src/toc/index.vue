@@ -91,9 +91,11 @@ defineOptions({
 // Props 定义
 const props = withDefaults(defineProps<{
   src: FileSrc
+  filename?: string
   showDownload?: boolean
   showPrint?: boolean
 }>(), {
+  filename: '',
   showDownload: true,
   showPrint: true
 })
@@ -117,8 +119,11 @@ const actualScale = ref(1.0)
 const fitMode = ref<string | null>(null)
 const loading = ref(true)
 const activeTab = ref('thumbnails')
-const filename = ref('document.pdf')
 const sidebarCollapsed = ref(false)
+const filename = computed(() => {
+  if (props.filename) return props.filename;
+  return 'document.pdf';
+})
 
 // 打印状态
 const isPrinting = ref(false)
