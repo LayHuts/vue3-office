@@ -1,5 +1,4 @@
 // ==================== 类型定义 ====================
-import {debounce, DebouncedFunc} from "lodash-es";
 
 interface MediaData {
   buffer: {
@@ -279,11 +278,58 @@ function renderImage(
   });
 }
 
-const renderImageDebounce: DebouncedFunc<typeof renderImage> = debounce(renderImage, 200, { leading: true });
+/**
+ * 使用 requestAnimationFrame 合并同一帧内的多次图片渲染调用
+ * 相比 debounce，RAF 能确保在浏览器下一次绘制前执行，消除闪烁
+ */
+let rafId: number | null = null;
+function renderImageRaf(
+  ctx: CanvasRenderingContext2D | null,
+  medias: MediaData[],
+  sheet: any,
+  offset: Offset | null,
+  options: RenderOptions = {}
+): void {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+  }
+  rafId = requestAnimationFrame(() => {
+    rafId = null;
+    renderImage(ctx, medias, sheet, offset, options);
+  });
+}
+
+/**
+ * 判断指定单元格是否被图片覆盖
+ */
+function isCellCoveredByImage(sheet: any, rowIndex: number, colIndex: number): boolean {
+  if (!sheet?._media?.length) return false;
+
+  return sheet._media.some((media: any) => {
+    if (media.type !== 'image' || !media.range) return false;
+    const { tl, br } = media.range;
+    if (!tl) return false;
+
+    const startRow = tl.nativeRow ?? 0;
+    const startCol = tl.nativeCol ?? 0;
+
+    // 如果有 br（右下角），用它来确定范围
+    if (br) {
+      const endRow = br.nativeRow ?? startRow;
+      const endCol = br.nativeCol ?? startCol;
+      return rowIndex >= startRow && rowIndex <= endRow
+        && colIndex >= startCol && colIndex <= endCol;
+    }
+
+    // 没有 br 只有 ext，粗略判断（至少覆盖起始单元格）
+    return rowIndex === startRow && colIndex === startCol;
+  });
+}
 
 export {
   clearImageCache,
+  isCellCoveredByImage,
   RenderOptions,
   renderImage,
-  renderImageDebounce,
+  renderImageRaf,
 }

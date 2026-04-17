@@ -1,7 +1,7 @@
 import * as Excel from 'exceljs/dist/exceljs';
 import { FileSrc, request, Result } from '@vue3-office/common';
 import { cloneDeep, get, find } from 'lodash-es';
-import {clearImageCache, parseColor, renderImage, renderImageDebounce, RenderOptions} from './utils';
+import {clearImageCache, isCellCoveredByImage, parseColor, renderImage, renderImageRaf, RenderOptions} from './utils';
 import dayjs from 'dayjs';
 import { read, write } from 'xlsx';
 import { DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT } from "./constant";
@@ -111,6 +111,12 @@ const setBottomBar = (xs: any, showBottomBar?: boolean) => {
 const initExcelEvent = (spreadsheet: any, renderImgOptions: RenderOptions, events?: UseExcelEvents) => {
   // 单选
   spreadsheet.on('cell-selected', (cell: any, ri: number, ci: number) => {
+    // 如果点击的单元格被图片覆盖，隐藏选择框
+    const currentSheet = workDataCache.workbookDataSource._worksheets[workDataCache.sheetIndex];
+    if (isCellCoveredByImage(currentSheet, ri, ci)) {
+      spreadsheet?.sheet?.selector?.hide();
+      return;
+    }
     // 记录点击记录
     workDataCache.sheetClicked.set(workDataCache.sheetIndex, true);
     events?.onCellSelected?.( cell, ri, ci);
@@ -118,6 +124,12 @@ const initExcelEvent = (spreadsheet: any, renderImgOptions: RenderOptions, event
 
   //多选
   spreadsheet.on('cells-selected', (cell: any, { sri, sci, eri, eci }: any) => {
+    // 如果选区起始位置被图片覆盖，隐藏选择框
+    const currentSheet = workDataCache.workbookDataSource._worksheets[workDataCache.sheetIndex];
+    if (isCellCoveredByImage(currentSheet, sri, sci)) {
+      spreadsheet?.sheet?.selector?.hide();
+      return;
+    }
     // 记录点击记录
     workDataCache.sheetClicked.set(workDataCache.sheetIndex, true);
     events?.onCellsSelected?.(cell, sri, sci, eri, eci);
@@ -160,7 +172,7 @@ const initExcelEvent = (spreadsheet: any, renderImgOptions: RenderOptions, event
     spreadsheet.sheet && tableRender.apply(spreadsheet.sheet.table, args);
     // ✅ 切换时跳过，避免重复渲染图片
     if (isSwapping) return;
-    renderImageDebounce(
+    renderImageRaf(
       workDataCache.ctx2d,
       workDataCache.mediasSource,
       workDataCache.workbookDataSource._worksheets[workDataCache.sheetIndex],
@@ -257,14 +269,14 @@ export const loadExcel = async (
 
   // 转换前回调
   if (callback?.beforeTransform) {
-    workBook = callback?.beforeTransform(workBook);
+    workBook = callback.beforeTransform(workBook) ?? workBook;
   }
 
   let { workbookData, medias, workbookSource } = transferExcelToSpreadSheet(workBook, transferOptions);
 
   // 转换后回调
   if (callback?.afterTransform) {
-    workbookData = callback?.afterTransform(workbookData);
+    workbookData = callback.afterTransform(workbookData) ?? workbookData;
   }
 
   //加载excel数据
@@ -290,7 +302,7 @@ export const loadExcel = async (
  * @param options
  */
 export const requestFileData = async (src: FileSrc,
-                               options?: RequestOptions): Promise<Result<ArrayBuffer>> => {
+                                      options?: RequestOptions): Promise<Result<ArrayBuffer>> => {
   if(typeof src === 'string') {
     return await request<ArrayBuffer>(src, options);
   } else {
@@ -311,23 +323,80 @@ const blobToArrayBuffer = async (blob: Blob): Promise<ArrayBuffer> => {
 }
 
 // ==================== Excel 解析 ====================
+
+/**
+ * 检测 buffer 是否为 OLE2 格式（.xls）
+ * OLE2 文件头魔数: D0 CF 11 E0 A1 B1 1A E1
+ */
+function isOLE2Format(buffer: ArrayBuffer): boolean {
+  const header = new Uint8Array(buffer.slice(0, 4));
+  return header[0] === 0xD0 && header[1] === 0xCF && header[2] === 0x11 && header[3] === 0xE0;
+}
+
+/**
+ * 检查 workbook 是否包含有效的 worksheet 数据
+ */
+function hasValidWorksheets(workbook: any): boolean {
+  return workbook?._worksheets?.filter(Boolean).length > 0;
+}
+
 /**
  * 读取并解析 Excel 文件数据
+ *
+ * 策略：
+ * 1. 自动检测文件格式，xls（OLE2）文件先通过 xlsx 库转为 xlsx 格式
+ * 2. 优先使用 exceljs 直接解析（样式最完整）
+ * 3. 若 exceljs 抛异常，或解析成功但 worksheets 为空，
+ *    则通过 xlsx 库将原始 buffer 重新写出为标准 xlsx 后再交给 exceljs 解析
  */
-export function readExcelData(buffer: ArrayBuffer, xls?: boolean): Promise<any> {
+export async function readExcelData(buffer: ArrayBuffer, xls?: boolean): Promise<any> {
+  let processedBuffer = buffer;
+
+  // 自动检测 xls 格式：外部参数或文件头魔数
+  const isXls = xls || isOLE2Format(buffer);
+
+  // xls 格式转换为 xlsx
+  if (isXls) {
+    console.log('[vue-excel] 检测到 OLE2/XLS 格式，通过 xlsx 库转换为 xlsx');
+    const workbook = read(buffer, { type: 'array' });
+    processedBuffer = write(workbook, { bookType: 'xlsx', type: 'array' });
+  }
+
+  let workBook: any;
+  let exceljsError: any = null;
+
+  // 第一步：尝试 exceljs 直接解析
   try {
-    let processedBuffer = buffer;
+    workBook = await new Excel.Workbook().xlsx.load(processedBuffer);
+  } catch (e: any) {
+    exceljsError = e;
+  }
 
-    // xls 格式转换为 xlsx
-    if (xls) {
-      const workbook = read(buffer, { type: 'array' });
-      processedBuffer = write(workbook, { bookType: 'xlsx', type: 'array' });
-    }
+  // 第二步：如果解析成功且有有效数据，直接返回
+  if (!exceljsError && hasValidWorksheets(workBook)) {
+    return workBook;
+  }
 
+  // 如果已经是 xls 转换过的，不需要再次回退（已经用 xlsx 库处理过了）
+  if (isXls) {
+    throw exceljsError || new Error('XLS 文件转换后仍无法解析');
+  }
+
+  // 第三步：xlsx 格式但 exceljs 失败或结果为空，走 xlsx 回退修复
+  const reason = exceljsError ? `解析异常: ${exceljsError.message}` : 'worksheets 为空';
+  console.warn(`[vue-excel] exceljs ${reason}，尝试通过 xlsx 库修复`);
+
+  try {
+    const xlsxWorkbook = read(processedBuffer, { type: 'array' });
+    const repairedBuffer = write(xlsxWorkbook, { bookType: 'xlsx', type: 'array' });
     const wb = new Excel.Workbook();
-    return wb.xlsx.load(processedBuffer);
-  } catch (e) {
-    return Promise.reject(e);
+    const repairedWorkBook = await wb.xlsx.load(repairedBuffer);
+    if (hasValidWorksheets(repairedWorkBook)) {
+      return repairedWorkBook;
+    }
+    throw new Error('xlsx 修复后仍无有效数据');
+  } catch (fallbackError: any) {
+    throw exceljsError || fallbackError;
   }
 }
 

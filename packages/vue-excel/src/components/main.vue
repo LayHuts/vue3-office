@@ -98,7 +98,7 @@ const rootRef = ref<HTMLElement | null>(null);
 
 let spreadsheetObject: any;
 let fileData: ArrayBuffer | null;
-
+let initialized = false;
 // 转换回调
 const callback: UseTransformCallback = {
   beforeTransform(workbook){
@@ -161,6 +161,7 @@ onMounted(() => {
       console.log(spreadsheet)
       spreadsheetObject = spreadsheet;
       fileData = fileArrayBuffer;
+      initialized = true;
       emit('rendered');
     }).catch((error: Error) => {
       emit('error', error);
@@ -174,7 +175,7 @@ onBeforeUnmount(() => {
 });
 
 watch(() => props.url, (url, oldUrl) => {
-  if (url !== oldUrl) {
+  if (url !== oldUrl  && initialized) {
     requestFileData(url, props.requestOptions).then((data) => {
       loadExcel(data, spreadsheetObject, transferOptions, workDataCache.ctx2d, callback);
     }).catch((error: Error) => {
