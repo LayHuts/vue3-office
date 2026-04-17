@@ -1,6 +1,6 @@
 {
   "name": "@vue3-office/vue-excel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Excel component for Vue 3",
   "author": {
     "name": "LayHuts"
