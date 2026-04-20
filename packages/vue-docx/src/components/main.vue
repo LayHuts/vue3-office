@@ -75,6 +75,8 @@ defineExpose({
   .vue-office-docx {
     height: 100%;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     .docx-wrapper {
       > section.docx {
         margin-bottom: 5px;
@@ -93,5 +95,11 @@ defineExpose({
         }
       }
     }
+  }
+
+  .vue-office-docx-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
   }
 </style>
