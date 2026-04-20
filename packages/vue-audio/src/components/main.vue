@@ -801,6 +801,7 @@ defineExpose({ play, pause, toggle })
 
   .aplayer-body {
     display: flex;
+    flex: 1;
     position: relative;
 
     .aplayer-info {
