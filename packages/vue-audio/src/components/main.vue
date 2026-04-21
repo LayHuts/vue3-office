@@ -723,24 +723,43 @@ function setSelfAdaptingTheme() {
 
 watch(() => props.music, (m) => { internalMusic.value = m })
 
-watch(currentMusic, (music) => {
+watch(currentMusic, async (music) => {
   setSelfAdaptingTheme()
+
   const src = music.src
+
   if (/\.m3u8(?=(#|\?|$))/.test(src)) {
-    if (audio.value?.canPlayType('application/x-mpegURL') || audio.value?.canPlayType('application/vnd.apple.mpegURL')) {
-      audio.value.src = src
-    } else {
-      try {
-        import('hls.js').then(({ default: Hls }) => {
-          if (Hls.isSupported()) {
-            if (!hls) hls = new Hls()
-            hls.loadSource(src)
-            hls.attachMedia(audio.value)
-          } else { warn('HLS is not supported'); if (audio.value) audio.value.src = src }
-        })
-      } catch { warn('hls.js is required for m3u8'); if (audio.value) audio.value.src = src }
+    const el = audio.value
+
+    if (
+      el?.canPlayType('application/x-mpegURL') ||
+      el?.canPlayType('application/vnd.apple.mpegurl')
+    ) {
+      el.src = src
+      return
     }
-  } else if (audio.value) audio.value.src = src
+
+    try {
+      // 👇避免 Vite 静态解析
+      const mod = await new Function('return import("hls.js")')()
+      const Hls = mod?.default
+
+      if (Hls && Hls.isSupported()) {
+        if (!hls) hls = new Hls()
+        hls.loadSource(src)
+        hls.attachMedia(el)
+      } else {
+        warn('HLS is not supported')
+        if (el) el.src = src
+      }
+    } catch (e) {
+      // 👇 没安装 hls.js 也不会炸
+      warn('hls.js not installed')
+      if (el) el.src = src
+    }
+  } else {
+    if (audio.value) audio.value.src = src
+  }
 }, { immediate: false })
 
 watch(isAudioMuted, (val) => { if (audio.value) audio.value.muted = val })
