@@ -1,6 +1,6 @@
 {
   "name": "@vue3-office/vue-pdf",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "PDF component for Vue 3",
   "author": {
     "name": "LayHuts"
