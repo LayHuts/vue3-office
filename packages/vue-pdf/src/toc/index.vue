@@ -133,8 +133,13 @@ const activeTab = ref('thumbnails')
 const sidebarCollapsed = ref(false)
 const filename = computed(() => {
   if (props.filename) return props.filename;
-  return 'document.pdf';
+  return '';
 })
+
+function defaultFileName(): string {
+  if (filename.value) return filename.value
+  return `pdf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.pdf`
+}
 
 // 打印状态
 const isPrinting = ref(false)
@@ -337,7 +342,7 @@ function handleTabChange(tab: string) {
 }
 
 function handleDownload() {
-  download(filename.value)
+  download(defaultFileName())
 }
 
 async function handlePrint() {
@@ -348,7 +353,7 @@ async function handlePrint() {
   printTotal.value = totalPages.value
 
   try {
-    const result = await printFast(100, filename.value, (current, total) => {
+    const result = await printFast(100, defaultFileName(), (current, total) => {
       printProgress.value = current
       printTotal.value = total
     })
