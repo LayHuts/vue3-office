@@ -141,8 +141,14 @@ const renderingQueue = new PDFRenderingQueue()
 
 // 适配 pdfViewer：将 scrollPageIntoView 桥接到 eventBus 事件驱动
 linkService.setViewer({
-  scrollPageIntoView({ pageNumber }: { pageNumber: number }) {
-    eventBus.dispatch('pagenumberchange', { pageNumber })
+  scrollPageIntoView({
+    pageNumber,
+    destArray,
+  }: {
+    pageNumber: number
+    destArray?: any[] | null
+  }) {
+    eventBus.dispatch('pagenumberchange', { pageNumber, destArray })
   },
   get currentPageNumber() { return currentPage.value },
   set currentPageNumber(val: number) {
@@ -226,6 +232,9 @@ onMounted(() => {
   eventBus.on('pagenumberchange', (evt: any) => {
     const pageNumber = evt.pageNumber
     if (pageNumber && pageNumber !== currentPage.value) {
+      // 来自 linkService（含目录跳转）的事件已经被 Content.vue 直接监听并执行了精确滚动，
+      // 这里只需要更新 currentPage / 派发 pagechanging，不要再次派发 pagenumberchange 把
+      // destArray 丢失。
       handlePageChange(pageNumber, 'linkService')
     }
   })
@@ -267,8 +276,10 @@ function handlePageChange(page: number, source = 'unknown') {
   eventBus.dispatch('pagechanging', { pageNumber: page, previous, source })
 
   // 非滚动触发（即外部主动跳转：Header 输入、键盘、按钮、目录等）
-  // 需要通知 Content 执行 scrollToPage
-  if (source !== 'scroll') {
+  // 需要通知 Content 执行 scrollToPage。
+  // linkService 触发的（包括目录跳转、内部链接）已经直接派发过 pagenumberchange
+  // 给 Content（且带着 destArray），不要在这里再补发一次空的，否则会把精确位置覆盖到页顶。
+  if (source !== 'scroll' && source !== 'linkService') {
     eventBus.dispatch('pagenumberchange', { pageNumber: page })
   }
 }

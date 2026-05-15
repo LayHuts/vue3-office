@@ -1,4 +1,5 @@
 export { default as VuePdf } from './main.vue'
 export * from './composable'
 export * from './types'
+export { parseDestOffset, getDestCssOffsetY, type DestOffset } from './utils/destination'
 export * from '@vue3-office/common'

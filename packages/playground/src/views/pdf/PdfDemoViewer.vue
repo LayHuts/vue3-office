@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue';
-import { VuePdf, usePDF } from '@vue3-office/vue-pdf';
+import {computed, ref, watch, useTemplateRef} from 'vue';
+import { VuePdf, usePDF, getDestCssOffsetY } from '@vue3-office/vue-pdf';
 import { useObjectUrl } from '@vue3-office/vue-pdf';
 import type { FileSrc } from '@vue3-office/vue-pdf';
 import useLoading from '../hooks/useLoading.js';
@@ -10,6 +10,7 @@ const props = defineProps<{
 }>();
 
 const page = ref(1);
+const viewerRef = useTemplateRef<HTMLDivElement>('viewerRef');
 
 const { createUrl } = useObjectUrl();
 const pdfSrc = computed(() => {
@@ -23,9 +24,22 @@ watch(pdfSrc, () => {
   page.value = 1;
 });
 
-function onRendered(){
+/**
+ * 待执行的目录跳转 destArray。等当前页渲染完成（@load 触发，能拿到 viewport）后再滚动。
+ */
+let pendingDest: any[] | null = null;
+
+function onRendered(viewport?: any){
   console.log('[PdfDemo] loaded');
   useLoading.hideLoading();
+
+  if (!pendingDest || !viewport || !viewerRef.value) return;
+
+  // viewBox = [x0, y0, x1, y1]，pageHeight 是 PDF 用户坐标系下的页面高度
+  const pageHeight: number = viewport.viewBox?.[3] ?? viewport.height / viewport.scale;
+  const offsetY = getDestCssOffsetY(pendingDest, pageHeight, viewport.scale);
+  viewerRef.value.scrollTo({ top: offsetY, behavior: 'auto' });
+  pendingDest = null;
 }
 
 function onError(error:{
@@ -41,7 +55,14 @@ function onError(error:{
 function onAnnotation(event: { type: string; data: any }) {
   console.log('[PdfDemo] annotation:', event);
   if (event.type === 'internal-link' && event.data.referencedPage) {
-    page.value = event.data.referencedPage;
+    pendingDest = event.data.destArray || null;
+    if (event.data.referencedPage === page.value) {
+      // 已在目标页：@load 不会再触发，直接清空 pending 并滚到顶部以避免错觉
+      pendingDest = null;
+      viewerRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      page.value = event.data.referencedPage;
+    }
   } else if (event.type === 'link' && event.data.url) {
     window.open(event.data.url, '_blank');
   }
@@ -81,7 +102,7 @@ function onXfaLoaded() {
         <span class="btn-icon">›</span>
       </button>
     </div>
-    <div class="pdf-viewer">
+    <div ref="viewerRef" class="pdf-viewer">
       <VuePdf
         :pdf="pdf"
         :page="page"

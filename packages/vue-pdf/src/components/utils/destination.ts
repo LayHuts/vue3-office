@@ -57,6 +57,57 @@ function getLocation(type: string, spec: number[]): PDFLocation | null {
 
 const isSpecLike = (list: any[]): list is number[] => list && list.every(v => !isNaN(v))
 
+/**
+ * 解析 destArray 内的精确目标坐标（PDF 用户坐标系，原点在页面左下角）。
+ * 返回 { left, bottom } —— PDF 单位，调用方负责换算到 CSS 像素：
+ *
+ *   const cssTop  = (pageHeight - bottom) * actualScale
+ *   const cssLeft = left * actualScale
+ *
+ * 不带 Y 偏移的 dest 类型（Fit / FitV / FitB / FitBV）会返回 null。
+ */
+export interface DestOffset {
+  left: number | null
+  bottom: number | null
+}
+
+export function parseDestOffset(destArray: any[] | null | undefined): DestOffset | null {
+  if (!Array.isArray(destArray) || destArray.length < 2) return null
+  const destType = destArray[1]
+  const destName = typeof destType === 'object' ? destType?.name : destType
+  switch (destName) {
+    case 'XYZ':
+      return {
+        left: destArray[2] ?? null,
+        bottom: destArray[3] ?? null,
+      }
+    case 'FitH':
+    case 'FitBH':
+      return { left: null, bottom: destArray[2] ?? null }
+    case 'FitR':
+      // [left, bottom, right, top] —— 跳到矩形顶部
+      return { left: destArray[2] ?? null, bottom: destArray[5] ?? null }
+    default:
+      // Fit / FitV / FitB / FitBV：没有有意义的 Y 偏移
+      return null
+  }
+}
+
+/**
+ * 把 destArray 换算成相对页面顶部的 CSS 像素偏移。
+ *   pageHeight  —— PDF 用户坐标里的页面高度（page.view[3] - page.view[1]，多数情况就是 viewBox[3]）
+ *   actualScale —— 当前页面 CSS 高度 / pageHeight
+ */
+export function getDestCssOffsetY(
+  destArray: any[] | null | undefined,
+  pageHeight: number,
+  actualScale: number
+): number {
+  const off = parseDestOffset(destArray)
+  if (!off || off.bottom == null) return 0
+  return Math.max(0, (pageHeight - off.bottom) * actualScale)
+}
+
 export {
   getDestinationArray,
   getDestinationRef,

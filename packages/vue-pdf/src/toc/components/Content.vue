@@ -22,6 +22,7 @@ import type { EventBus, PDFLinkService, PDFRenderingQueue } from '../services'
 import type { PDFLocation } from '../types'
 import { PDF_TO_CSS_UNITS, DRAWING_DELAY, RenderingStates } from '../utils'
 import { calculateTargetScale } from '../utils/scale-manager'
+import { getDestCssOffsetY } from '../../components/utils/destination'
 
 // ============================================================================
 
@@ -445,12 +446,13 @@ function doEmitPage(p: number) {
 // 跳转
 // ============================================================================
 
-function scrollToPage(pageNum: number, smooth = false) {
+function scrollToPage(pageNum: number, smooth = false, offsetY = 0) {
   if (!containerRef.value) return
   const pv = pageViews[pageNum - 1]
   if (!pv) return
   const contentOffset = pdfContentRef.value ? pdfContentRef.value.offsetTop : 0
-  const target = pv.div.offsetTop + contentOffset - 10
+  // offsetY 来自 destArray 的精确位置（已经是 CSS px），默认 -10 给一个轻微的上边距
+  const target = pv.div.offsetTop + contentOffset + (offsetY || -10)
 
   // 取消当前 draw
   if (currentRendering) currentRendering.cancel()
@@ -473,10 +475,28 @@ function scrollToPage(pageNum: number, smooth = false) {
   }
 }
 
-function scrollToDestinationArray(pageNumber: number, _destArray: any[]) {
-  // 简化：目录跳转只对齐到页顶（与 scrollToPage 一致），不做 destArray 里的精确 Y 偏移
-  // 保留 destArray 参数签名是为了兼容未来需要精确模式的扩展
-  scrollToPage(pageNumber, false)
+/**
+ * 解析 destArray 内的 Y 偏移，单位换算到 CSS px。
+ * 公共逻辑在 components/utils/destination.ts，单页模式与 toc 多页共用。
+ *   PDF 坐标系原点在页面左下角，Y 越大越靠上；
+ *   而 CSS 中 div.offsetTop 越大越靠下，所以由共享函数做 (pageHeight - destY) 换算。
+ */
+function getDestinationOffsetY(pv: PDFPageView, destArray: any[]): number {
+  const pageHeight = pv.pageSize.height
+  const pageRect = pv.div.getBoundingClientRect()
+  // 当前实际显示比例（CSS px / PDF user-space unit）
+  const actualScale = pageHeight > 0 ? pageRect.height / pageHeight : 1
+  return getDestCssOffsetY(destArray, pageHeight, actualScale)
+}
+
+function scrollToDestinationArray(pageNumber: number, destArray: any[]) {
+  const pv = pageViews[pageNumber - 1]
+  if (!pv) {
+    scrollToPage(pageNumber, false)
+    return
+  }
+  const offsetY = getDestinationOffsetY(pv, destArray)
+  scrollToPage(pageNumber, false, offsetY)
 }
 
 function adjustExactPosition(pageNumber: number, destArray: any[]) {
@@ -608,11 +628,16 @@ function handlePageSizeChanged(view: PDFPageView, oldH: number, newH: number) {
   const contentOffset = pdfContentRef.value.offsetTop
   const pageTop = view.div.offsetTop + contentOffset
 
-  // 目录跳转：如果是正在跳转的目标页，完成后重新对齐到页顶
+  // 目录跳转：如果是正在跳转的目标页，完成后重新对齐到精确位置
   if (pendingDestination && view.id === pendingDestination.pageNumber) {
+    const dest = pendingDestination
     requestAnimationFrame(() => {
       if (!pendingDestination) return
-      scrollToPage(pendingDestination.pageNumber, false)
+      if (dest.destArray) {
+        scrollToDestinationArray(dest.pageNumber, dest.destArray)
+      } else {
+        scrollToPage(dest.pageNumber, false)
+      }
       pendingDestination = null
     })
     return

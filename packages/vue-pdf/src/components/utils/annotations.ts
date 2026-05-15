@@ -5,6 +5,7 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { RefProxy } from 'pdfjs-dist/types/src/display/api'
 import type { AnnotationEventPayload } from '../types'
+import { parseDestOffset } from './destination'
 
 interface PopupArgs {
   [key: string]: string
@@ -111,22 +112,27 @@ async function linkAnnotation(annotation: {
       return buildAnnotationData(INTERNAL_LINK, {
         referencedPage: null,
         offset: null,
+        destArray: null,
       })
     }
 
-    let offset = null
-    if (explicitDest.length === 5) {
-      offset = {
-        left: annotation.dest[2],
-        bottom: annotation.dest[3],
-      }
-    }
+    /*
+     * 解析 destArray 内的精确位置（PDF 用户坐标系，原点在页面左下角）。
+     * 复用 destination.ts#parseDestOffset，与 toc 多页模式共用同一套解析逻辑：
+     *   [pageRef, { name: 'XYZ' },   x,   y,   zoom]
+     *   [pageRef, { name: 'FitH' },  top]
+     *   [pageRef, { name: 'FitBH' }, top]
+     *   [pageRef, { name: 'FitR' },  left, bottom, right, top]
+     * 其它 Fit / FitV / FitB / FitBV 没有 Y 偏移（offset 为 null），跳到页顶。
+     */
+    const offset = parseDestOffset(explicitDest)
 
     const [destRef] = explicitDest
     if (Number.isInteger(destRef)) {
       return buildAnnotationData(INTERNAL_LINK, {
         referencedPage: Number(destRef) + 1,
         offset,
+        destArray: explicitDest,
       })
     }
     else if (typeof destRef === 'object') {
@@ -134,6 +140,7 @@ async function linkAnnotation(annotation: {
       return buildAnnotationData(INTERNAL_LINK, {
         referencedPage: pageNumber + 1,
         offset,
+        destArray: explicitDest,
       })
     }
     else {
@@ -143,6 +150,7 @@ async function linkAnnotation(annotation: {
       return buildAnnotationData(INTERNAL_LINK, {
         referencedPage: null,
         offset: null,
+        destArray: null,
       })
     }
   }
