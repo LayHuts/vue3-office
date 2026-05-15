@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const { pdf } = usePDF('/45.pdf')
 function onAnnotation(value) {
@@ -13,7 +13,7 @@ function onAnnotation(value) {
 
 <template>
   <div>
-    <VuePDF :pdf="pdf" annotation-layer @annotation="onAnnotation" />
+    <VuePdf :pdf="pdf" annotation-layer @annotation="onAnnotation" />
   </div>
 </template>
 ```

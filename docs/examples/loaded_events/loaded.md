@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
 function onLoaded(value) {
@@ -13,7 +13,7 @@ function onLoaded(value) {
 
 <template>
   <div>
-    <VuePDF :pdf="pdf" @loaded="onLoaded" />
+    <VuePdf :pdf="pdf" @loaded="onLoaded" />
   </div>
 </template>
 ```

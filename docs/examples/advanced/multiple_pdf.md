@@ -2,7 +2,7 @@
 
 ```vue
 <script setup>
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 import { ref } from 'vue'
 
 const pdfSources = [
@@ -33,7 +33,7 @@ function nextPdf() {
         Next PDF (Current index: {{ pdfSourceIdx }})
       </button>
     </div>
-    <VuePDF :pdf="pdf" />
+    <VuePdf :pdf="pdf" />
   </div>
 </template>
 ```

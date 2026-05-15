@@ -3,8 +3,8 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
-import '@tato30/vue-pdf/style.css'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
+import '@vue3-office/vue-pdf/style.css'
 
 const text_layer = ref(false)
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
@@ -17,7 +17,7 @@ const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edea
         Change to {{ !text_layer }}
       </button>
     </div>
-    <VuePDF :pdf="pdf" :text-layer="text_layer" />
+    <VuePdf :pdf="pdf" :text-layer="text_layer" />
   </div>
 </template>
 ```

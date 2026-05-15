@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
 
@@ -28,7 +28,7 @@ function fitParentWidth(pxs) {
       </button>
     </div>
     <div :style="`width: ${parentWidth}px`">
-      <VuePDF ref="vuePDFRef" :pdf="pdf" fit-parent />
+      <VuePdf ref="vuePDFRef" :pdf="pdf" fit-parent />
     </div>
   </div>
 </template>

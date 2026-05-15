@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const { pdf } = usePDF('/14.pdf')
 
@@ -25,7 +25,7 @@ function reloadPage() {
         </option>
       </select>
     </div>
-    <VuePDF ref="vuePDFRef" :pdf="pdf" annotation-layer :annotations-filter="selectedFilter" />
+    <VuePdf ref="vuePDFRef" :pdf="pdf" annotation-layer :annotations-filter="selectedFilter" />
   </div>
 </template>
 ```

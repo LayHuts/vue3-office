@@ -2,8 +2,8 @@
 
 ```vue
 <script setup>
-import { VuePDF, usePDF } from '@tato30/vue-pdf';
-import '@tato30/vue-pdf/style.css';
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf';
+import '@vue3-office/vue-pdf/style.css';
 import { ref } from 'vue';
 
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
@@ -22,7 +22,7 @@ const highlightOptions = ref({
       <input v-model="highlightOptions.completeWords" type="checkbox">
       <input v-model="highlightOptions.ignoreCase" type="checkbox">
     </div>
-    <VuePDF :pdf="pdf" text-layer :highlight-text="highlightText" :highlight-options="highlightOptions" />
+    <VuePdf :pdf="pdf" text-layer :highlight-text="highlightText" :highlight-options="highlightOptions" />
   </div>
 </template>
 ```

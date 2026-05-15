@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const page = ref(1)
 const { pdf, pages } = usePDF('https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf')
@@ -20,7 +20,7 @@ const { pdf, pages } = usePDF('https://mozilla.github.io/pdf.js/web/compressed.t
         Next
       </button>
     </div>
-    <VuePDF :pdf="pdf" :page="page" />
+    <VuePdf :pdf="pdf" :page="page" />
   </div>
 </template>
 ```

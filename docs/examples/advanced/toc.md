@@ -4,7 +4,7 @@
 <script setup>
 import { ref, triggerRef, watchEffect } from 'vue'
 
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 import ChaptersList from './ChaptersList.vue'
 
@@ -42,7 +42,7 @@ function onChapterClick(value) {
       />
     </div>
     <div class="container">
-      <VuePDF :pdf="pdf" />
+      <VuePdf :pdf="pdf" />
     </div>
   </div>
 </template>

@@ -2,8 +2,8 @@
 
 ```vue
 <script setup>
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
-import '@tato30/vue-pdf/style.css'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
+import '@vue3-office/vue-pdf/style.css'
 
 const { pdf } = usePDF({
   url: '/xfa.pdf',
@@ -13,7 +13,7 @@ const { pdf } = usePDF({
 
 <template>
   <div class="container">
-    <VuePDF :pdf="pdf" />
+    <VuePdf :pdf="pdf" />
   </div>
 </template>
 ```

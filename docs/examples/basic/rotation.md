@@ -3,7 +3,7 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const rotation = ref(1)
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
@@ -20,7 +20,7 @@ const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edea
         +90
       </button>
     </div>
-    <VuePDF :pdf="pdf" :rotation="rotation" />
+    <VuePdf :pdf="pdf" :rotation="rotation" />
   </div>
 </template>
 ```

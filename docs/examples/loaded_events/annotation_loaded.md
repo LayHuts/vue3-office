@@ -6,7 +6,7 @@ Annotation loaded event's payload has too many data to display on screen, open t
 
 ```vue
 <script setup>
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
 const { pdf } = usePDF('/14.pdf')
 function onLoaded(value) {
@@ -16,7 +16,7 @@ function onLoaded(value) {
 
 <template>
   <div>
-    <VuePDF :pdf="pdf" annotation-layer @annotation-loaded="onLoaded" />
+    <VuePdf :pdf="pdf" annotation-layer @annotation-loaded="onLoaded" />
   </div>
 </template>
 ```

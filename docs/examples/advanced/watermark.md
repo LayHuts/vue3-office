@@ -2,7 +2,7 @@
 
 ```vue
 <script setup>
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 import { ref } from 'vue'
 
 const { pdf } = usePDF('https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf')
@@ -32,7 +32,7 @@ function reload() {
       <input v-model="watermarkOptions.rotation">
       <input v-model="watermarkOptions.fontSize">
     </div>
-    <VuePDF ref="pdfRef" :pdf="pdf" :watermark-text="watermarkText" :watermark-options="watermarkOptions" />
+    <VuePdf ref="pdfRef" :pdf="pdf" :watermark-text="watermarkText" :watermark-options="watermarkOptions" />
   </div>
 </template>
 ```

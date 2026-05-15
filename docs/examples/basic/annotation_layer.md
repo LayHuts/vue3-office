@@ -3,8 +3,8 @@
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { VuePDF, usePDF } from '@tato30/vue-pdf'
-import '@tato30/vue-pdf/style.css'
+import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
+import '@vue3-office/vue-pdf/style.css'
 
 const annotation_layer = ref(false)
 const { pdf } = usePDF('example_014.pdf')
@@ -17,7 +17,7 @@ const { pdf } = usePDF('example_014.pdf')
         Change to {{ !annotation_layer }}
       </button>
     </div>
-    <VuePDF :pdf="pdf" :annotation-layer="annotation_layer" />
+    <VuePdf :pdf="pdf" :annotation-layer="annotation_layer" />
   </div>
 </template>
 ```
