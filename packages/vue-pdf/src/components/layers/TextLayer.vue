@@ -128,63 +128,91 @@ defineExpose({ render, cancel, findAndHighlight });
   <div ref="layer" class="textLayer" />
 </template>
 
-<style scoped>
+<!-- 为了保证 pdfjs-dist 动态创建的 span/br 能正确接收样式，文本层不能使用 scoped。 -->
+<style>
+/*
+ * 这里基本对齐 pdfjs-dist 5.x 官方 web/pdf_viewer.css 中的 .textLayer 规则。
+ * 关键点：
+ *   1. 通过 --font-height / --scale-x / --rotate / --min-font-size-inv 等自定义
+ *      属性正确设置 font-size 和 transform，让文本层 span 与 canvas 文字精确对齐，
+ *      否则鼠标选择会出现断断续续的问题。
+ *   2. .markedContent 使用 display: contents，被标记内容里的 span 才是真正承载
+ *      文字的元素。
+ */
 .textLayer {
   position: absolute;
   text-align: initial;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
   line-height: 1;
+  -webkit-text-size-adjust: none;
   text-size-adjust: none;
   forced-color-adjust: none;
   transform-origin: 0 0;
+  caret-color: CanvasText;
   z-index: 2;
-  /* 禁止容器本身被选中 */
-  user-select: none;
-  -webkit-user-select: none;
+
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
 }
 
-/* pdfjs-dist 动态创建的 span 没有 data-v 属性，必须用 :deep() 穿透 scoped 限制 */
-.textLayer :deep(span) {
+.textLayer.highlighting {
+  touch-action: none;
+}
+
+.textLayer :is(span, br) {
   color: transparent;
   position: absolute;
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
-  /* 只允许文本 span 被选中 */
-  user-select: text;
-  -webkit-user-select: text;
 }
 
-.textLayer :deep(span:empty) {
-  user-select: none;
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+    scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent {
+  display: contents;
+}
+
+.textLayer span[role="img"] {
   -webkit-user-select: none;
-}
-
-.textLayer :deep(br) {
   user-select: none;
-  -webkit-user-select: none;
+  cursor: default;
 }
 
-.textLayer :deep(span)::selection {
+.textLayer ::selection {
   background: rgba(0, 0, 255, 0.25);
+  background: color-mix(in srgb, AccentColor, transparent 75%);
 }
 
-.textLayer :deep(.endOfContent) {
+.textLayer br::selection {
+  background: transparent;
+}
+
+.textLayer .endOfContent {
   display: block;
   position: absolute;
   inset: 100% 0 0;
-  z-index: -1;
+  z-index: 0;
   cursor: default;
-  user-select: none;
   -webkit-user-select: none;
-  pointer-events: none;
+  user-select: none;
 }
 
-.textLayer :deep(.endOfContent.active) {
+.textLayer.selecting .endOfContent {
   top: 0;
 }
 </style>

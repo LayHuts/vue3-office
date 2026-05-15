@@ -232,12 +232,26 @@ export class PDFPageView implements IRenderableView {
         this.textLayerDiv = document.createElement('div')
         this.textLayerDiv.className = 'textLayer'
         this.textLayerDiv.tabIndex = 0
-        // pdfjs textLayer span 的 transform 依赖 --scale-factor
+        // pdfjs textLayer span 的 transform / font-size 依赖以下 CSS 变量：
+        //   --scale-factor、--user-unit、--total-scale-factor
+        // 缺少 --total-scale-factor 时 font-size 计算会失效，导致选择断断续续。
+        const userUnit = (this.page as any).userUnit ?? 1
         this.textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale))
+        this.textLayerDiv.style.setProperty('--user-unit', String(userUnit))
+        this.textLayerDiv.style.setProperty(
+          '--total-scale-factor',
+          'calc(var(--scale-factor) * var(--user-unit))'
+        )
         this.canvasWrapper.appendChild(this.textLayerDiv)
       } else {
         this.textLayerDiv.replaceChildren()
+        const userUnit = (this.page as any).userUnit ?? 1
         this.textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale))
+        this.textLayerDiv.style.setProperty('--user-unit', String(userUnit))
+        this.textLayerDiv.style.setProperty(
+          '--total-scale-factor',
+          'calc(var(--scale-factor) * var(--user-unit))'
+        )
       }
       try {
         const stream = this.page.streamTextContent({

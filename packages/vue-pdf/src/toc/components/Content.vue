@@ -705,13 +705,38 @@ defineExpose({
   caret-color: CanvasText;
   -webkit-user-select: text;
   user-select: text;
+
+  /* pdfjs-dist 5.x 计算文本 span 字号/缩放需要的变量，缺一不可 */
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.pdf-content .pdf-page-container .textLayer.highlighting {
+  touch-action: none;
 }
 .pdf-content .pdf-page-container .textLayer :is(span, br) {
   color: transparent; position: absolute; white-space: pre;
   cursor: text; transform-origin: 0% 0%;
 }
-.pdf-content .pdf-page-container .textLayer span.markedContent {
-  top: 0; height: 0;
+/* 关键：让每个文本 span 按 --font-height/--scale-x 缩放，与 canvas 文字精确对齐，
+   否则鼠标拖选会断断续续。 */
+.pdf-content .pdf-page-container .textLayer > :not(.markedContent),
+.pdf-content .pdf-page-container .textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+    scale(var(--min-font-size-inv));
+}
+.pdf-content .pdf-page-container .textLayer .markedContent {
+  display: contents;
+}
+.pdf-content .pdf-page-container .textLayer span[role="img"] {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
 }
 .pdf-content .pdf-page-container .textLayer ::selection {
   background: rgba(0, 0, 255, 0.3);
@@ -719,6 +744,18 @@ defineExpose({
 }
 .pdf-content .pdf-page-container .textLayer br::selection {
   background: transparent;
+}
+.pdf-content .pdf-page-container .textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.pdf-content .pdf-page-container .textLayer.selecting .endOfContent {
+  top: 0;
 }
 .pdf-content .pdf-page-container .annotationLayer {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
