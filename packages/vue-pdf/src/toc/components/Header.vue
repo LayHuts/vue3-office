@@ -158,6 +158,9 @@ function handleZoomOut() {
   align-items: center;
   justify-content: space-between;
   height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  flex-shrink: 0;
   background: #424242;
   padding: 0 16px;
 }
