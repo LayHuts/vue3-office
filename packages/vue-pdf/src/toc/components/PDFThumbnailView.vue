@@ -1,11 +1,20 @@
 <template>
   <div class="thumbnail-item" :class="{ selected: isCurrent }" :data-page-number="id">
     <div class="thumbnail-container">
-      <div v-if="renderingState >= RenderingStates.RUNNING" class="thumbnail-canvas">
-        <VuePdf v-if="pdf" :pdf="pdf" :page="id" :scale="0.15" class="thumbnail-pdf" @loaded="handleLoaded" @error="handleError" />
+      <div v-if="shouldMount" class="thumbnail-canvas">
+        <VuePdf
+          ref="pdfRef"
+          :pdf="pdf"
+          :page="id"
+          :scale="0.15"
+          :auto-render="false"
+          class="thumbnail-pdf"
+          @loaded="handleLoaded"
+          @error="handleError"
+          @state-change="handleStateChange"
+        />
       </div>
       <div v-else class="thumbnail-placeholder">
-        <div v-if="renderingState === RenderingStates.RUNNING" class="loading-spinner"></div>
         <span>{{ id }}</span>
       </div>
     </div>
@@ -14,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 import VuePdf from '../../components/main.vue'
 import { RenderingStates } from '../utils'
 import type { EventBus, PDFLinkService } from '../services'
@@ -28,7 +38,15 @@ const props = defineProps<{
   linkService: PDFLinkService
 }>()
 
-const emit = defineEmits<{ 'rendered': [] }>()
+const emit = defineEmits<{
+  'rendered': []
+  'state-change': [state: number]
+}>()
+
+const pdfRef = ref<any>()
+
+// 只有进入 RUNNING 及以上状态才挂载 VuePdf，避免一次性挂满
+const shouldMount = computed(() => props.renderingState >= RenderingStates.RUNNING)
 
 function handleLoaded() {
   emit('rendered')
@@ -38,12 +56,35 @@ function handleLoaded() {
 function handleError(error: { type: string; message: string; error: any }) {
   console.error(`缩略图 ${props.id} 渲染失败:`, error)
   props.eventBus.dispatch('thumbnailError', { pageNumber: props.id, error })
+  emit('state-change', RenderingStates.INITIAL)
   emit('rendered')
 }
+
+function handleStateChange(state: number) {
+  emit('state-change', state)
+}
+
+// 外部 state 变为 RUNNING 时主动 draw
+watch(
+  () => props.renderingState,
+  (s) => {
+    if (s === RenderingStates.RUNNING) {
+      // 等 v-if 渲染完成
+      requestAnimationFrame(() => {
+        pdfRef.value?.draw?.()
+      })
+    }
+  }
+)
+
+defineExpose({
+  draw: () => pdfRef.value?.draw?.(),
+  cancel: () => pdfRef.value?.cancel?.()
+})
 </script>
 
 <style scoped>
-.thumbnail-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 6px; border-radius: 6px; border: 2px solid transparent; background: rgba(255,255,255,0.02); flex-shrink: 0; }
+.thumbnail-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 6px; border-radius: 6px; border: 2px solid transparent; background: rgba(255,255,255,0.02); flex-shrink: 0; contain: layout paint; }
 .thumbnail-item:hover { background: var(--pdf-bg-active); }
 .thumbnail-item.selected { border-color: var(--pdf-primary-color); background: var(--pdf-primary-bg); box-shadow: 0 2px 8px var(--pdf-primary-shadow); }
 .thumbnail-container { width: 100%; max-width: 110px; aspect-ratio: 3/4; background: #fff; border-radius: 4px; overflow: hidden; box-shadow: var(--pdf-shadow-sm), var(--pdf-shadow-md); margin-bottom: 6px; }
@@ -52,9 +93,7 @@ function handleError(error: { type: string; message: string; error: any }) {
 .thumbnail-canvas { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 .thumbnail-pdf { width: 100%; height: 100%; }
 .thumbnail-pdf :deep(canvas) { max-width: 100% !important; max-height: 100% !important; width: auto !important; height: auto !important; object-fit: contain !important; display: block !important; margin: 0 auto !important; }
-.thumbnail-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--pdf-text-muted); font-size: 12px; gap: 8px; }
-.loading-spinner { width: 20px; height: 20px; border: 2px solid #e0e0e0; border-top-color: var(--pdf-primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.thumbnail-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--pdf-text-muted); font-size: 12px; }
 .thumbnail-label { color: var(--pdf-text-primary); font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 10px; background: var(--pdf-bg-hover); min-width: 20px; text-align: center; }
 .thumbnail-item.selected .thumbnail-label { color: #fff; background: var(--pdf-primary-color); font-weight: 600; }
-@keyframes spin { to { transform: rotate(360deg); } }
 </style>

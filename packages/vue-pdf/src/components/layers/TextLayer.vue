@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as PDFJS from "pdfjs-dist";
-import { onBeforeUnmount, ref, watch } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 
 import type { PDFPageProxy, PageViewport } from "pdfjs-dist";
 import type {
@@ -24,7 +24,6 @@ const emit = defineEmits<{
 }>();
 
 const layer = ref<HTMLDivElement>();
-const endContent = ref<HTMLDivElement>();
 let textDivs: HTMLElement[] = [];
 let textLayerTask: PDFJS.TextLayer | null = null;
 
@@ -74,22 +73,20 @@ async function findAndHighlight(reset = false) {
   }
 }
 
-async function render() {
-  // 取消之前的渲染任务
+async function render(): Promise<void> {
   textLayerTask?.cancel();
-  
-  // 清空容器内容
+
   if (layer.value) {
-    layer.value.innerHTML = '';
+    layer.value.replaceChildren();
   }
 
   const page = props.page;
   const viewport = props.viewport;
-  
+
   if (!page || !viewport || !layer.value) {
     return;
   }
-  
+
   const textStream = page.streamTextContent({
     includeMarkedContent: true,
     disableNormalization: true,
@@ -108,77 +105,30 @@ async function render() {
     const textContent = await page.getTextContent();
     emit("textLoaded", { textDivs, textContent });
 
-    setEOC();
-    findAndHighlight();
+    await findAndHighlight();
   } catch (e: any) {
-    // 忽略取消错误
-    if (e?.name !== 'RenderingCancelledException') {
+    if (e?.name !== "RenderingCancelledException") {
       console.error(e);
     }
   }
 }
 
-function setEOC() {
-  const endOfContent = document.createElement("div");
-  endOfContent.className = "endOfContent";
-  layer.value?.appendChild(endOfContent);
-  endContent.value = endOfContent;
+function cancel() {
+  textLayerTask?.cancel();
 }
 
-function onMouseDown() {
-  if (!endContent.value) {
-    return;
-  }
-  endContent.value.classList.add("active");
-}
-
-function onMouseUp() {
-  if (!endContent.value) {
-    return;
-  }
-  endContent.value.classList.remove("active");
-}
-
-// 记录上一次的 viewport，避免重复渲染
-let lastViewport: PageViewport | undefined = undefined;
-
-watch(
-  () => [props.page, props.viewport],
-  ([newPage, newViewport]) => {
-    // 只有当 viewport 真正变化时才渲染
-    if (newPage && newViewport && layer.value && newViewport !== lastViewport) {
-      lastViewport = newViewport as PageViewport;
-      render();
-    }
-  },
-  { immediate: true }
-);
-
-watch(
-  () => [props.highlightText, props.highlightOptions],
-  (_) => {
-    findAndHighlight(true);
-  },
-  { deep: true }
-);
-
-// 添加清理
 onBeforeUnmount(() => {
   textLayerTask?.cancel();
 });
 
+defineExpose({ render, cancel, findAndHighlight });
 </script>
 
 <template>
-  <div
-    ref="layer"
-    class="textLayer"
-    @mousedown="onMouseDown"
-    @mouseup="onMouseUp"
-  />
+  <div ref="layer" class="textLayer" />
 </template>
 
-<style>
+<style scoped>
 .textLayer {
   position: absolute;
   text-align: initial;
@@ -197,7 +147,8 @@ onBeforeUnmount(() => {
   -webkit-user-select: none;
 }
 
-.textLayer > span {
+/* pdfjs-dist 动态创建的 span 没有 data-v 属性，必须用 :deep() 穿透 scoped 限制 */
+.textLayer :deep(span) {
   color: transparent;
   position: absolute;
   white-space: pre;
@@ -208,21 +159,21 @@ onBeforeUnmount(() => {
   -webkit-user-select: text;
 }
 
-.textLayer > span:empty {
+.textLayer :deep(span:empty) {
   user-select: none;
   -webkit-user-select: none;
 }
 
-.textLayer br {
+.textLayer :deep(br) {
   user-select: none;
   -webkit-user-select: none;
 }
 
-.textLayer > span::selection {
+.textLayer :deep(span)::selection {
   background: rgba(0, 0, 255, 0.25);
 }
 
-.textLayer .endOfContent {
+.textLayer :deep(.endOfContent) {
   display: block;
   position: absolute;
   inset: 100% 0 0;
@@ -233,7 +184,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.textLayer .endOfContent.active {
+.textLayer :deep(.endOfContent.active) {
   top: 0;
 }
 </style>

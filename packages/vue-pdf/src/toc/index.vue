@@ -139,6 +139,17 @@ const eventBus = new EventBus()
 const linkService = new PDFLinkService({ eventBus })
 const renderingQueue = new PDFRenderingQueue()
 
+// 适配 pdfViewer：将 scrollPageIntoView 桥接到 eventBus 事件驱动
+linkService.setViewer({
+  scrollPageIntoView({ pageNumber }: { pageNumber: number }) {
+    eventBus.dispatch('pagenumberchange', { pageNumber })
+  },
+  get currentPageNumber() { return currentPage.value },
+  set currentPageNumber(val: number) {
+    eventBus.dispatch('pagenumberchange', { pageNumber: val })
+  },
+})
+
 // PDF 文档代理
 const pdfDocument = shallowRef<any>(null)
 
@@ -254,6 +265,12 @@ function handlePageChange(page: number, source = 'unknown') {
   currentPage.value = page
 
   eventBus.dispatch('pagechanging', { pageNumber: page, previous, source })
+
+  // 非滚动触发（即外部主动跳转：Header 输入、键盘、按钮、目录等）
+  // 需要通知 Content 执行 scrollToPage
+  if (source !== 'scroll') {
+    eventBus.dispatch('pagenumberchange', { pageNumber: page })
+  }
 }
 
 function handleContentPageChange(page: number) {

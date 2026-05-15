@@ -57,11 +57,17 @@ export class PDFRenderingQueue {
       this.idleTimeout = null
     }
 
+    // 主视图始终优先
     if (this.pdfViewer?.forceRendering?.(currentlyVisiblePages)) {
       return
     }
 
-    if (this.isThumbnailViewEnabled && this.pdfThumbnailViewer?.forceRendering?.()) {
+    // 缩略图仅在启用 + 未被打印占用时才渲染
+    const thumbsEnabled =
+      this.isThumbnailViewEnabled ||
+      this.pdfThumbnailViewer?.isThumbnailViewEnabled?.() === true
+
+    if (thumbsEnabled && this.pdfThumbnailViewer?.forceRendering?.()) {
       return
     }
 

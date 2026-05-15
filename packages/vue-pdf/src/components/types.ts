@@ -3,7 +3,6 @@ import type { PageViewport } from 'pdfjs-dist'
 import type {
   DocumentInitParameters,
   OnProgressParameters,
-  PDFDataRangeTransport,
   TextContent,
   TypedArray,
 } from 'pdfjs-dist/types/src/display/api'
@@ -89,10 +88,10 @@ export type PDFSrc =
   | string
   | URL
   | TypedArray
-  | PDFDataRangeTransport
+  | ArrayBuffer
   | DocumentInitParameters
   | undefined
-  | null
+  | null;
 
 export interface PDFOptions {
   onProgress?: OnProgressCallback

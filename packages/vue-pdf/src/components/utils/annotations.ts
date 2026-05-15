@@ -175,6 +175,8 @@ function annotationEventsHandler(evt: Event, PDFDoc: PDFDocumentProxy, Annotatio
     annotation = annotation.parentNode! as HTMLElement
 
   if (annotation.className === 'linkAnnotation' && evt.type === 'click') {
+    // 阻止 <a> 标签的默认导航行为，避免当前页面被跳转
+    evt.preventDefault()
     const id: string | undefined = annotation.dataset?.annotationId
     if (id)
       return linkAnnotation(getAnnotationsByKey('id', id, Annotations)[0] as LinkAnnotation, PDFDoc)

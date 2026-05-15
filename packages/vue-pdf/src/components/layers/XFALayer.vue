@@ -5,7 +5,7 @@ import { onMounted, ref, toRaw, watch } from 'vue'
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 import type { XfaLayerParameters } from 'pdfjs-dist/types/src/display/xfa_layer'
 
-import { SimpleLinkService } from '../utils/link_service'
+import { SimpleLinkService } from '../services'
 
 const props = defineProps<{
   page?: PDFPageProxy

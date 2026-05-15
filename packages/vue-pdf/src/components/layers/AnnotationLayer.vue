@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import * as PDFJS from 'pdfjs-dist'
-import { ref, toRaw, watch } from 'vue'
+import { ref, toRaw } from 'vue'
 
 import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist'
 import type { AnnotationLayerParameters } from 'pdfjs-dist/types/src/display/annotation_layer'
-import type { IDownloadManager } from 'pdfjs-dist/types/web/interfaces'
 
 import { EVENTS_TO_HANDLER, annotationEventsHandler } from '../utils/annotations'
-import { SimpleLinkService } from '../utils/link_service'
+import { SimpleLinkService } from '../services'
 
 import type { AnnotationEventPayload } from '../types'
 
@@ -31,119 +30,140 @@ const emit = defineEmits<{
 const layer = ref<HTMLDivElement>()
 const annotations = ref<any[]>()
 
+// 缓存 document 级别的信息，避免每页都问一次 worker
+let cachedFieldObjects: any = null
+let cachedHasJSActions: boolean | null = null
+let cachedFor: PDFDocumentProxy | null = null
+
 function annotationsEvents(evt: Event) {
   const value = annotationEventsHandler(evt, props.document!, annotations.value!)
   Promise.resolve(value).then((data) => {
-    if (data)
-      emit('annotation', data)
+    if (data) emit('annotation', data)
   })
 }
 
 async function getFieldObjects() {
-  const fieldObjects = await toRaw(props.document)?.getFieldObjects()
-  return fieldObjects
+  const doc = toRaw(props.document)
+  if (!doc) return undefined
+  if (cachedFor !== doc) {
+    cachedFor = doc
+    cachedFieldObjects = null
+    cachedHasJSActions = null
+  }
+  if (cachedFieldObjects === null) {
+    cachedFieldObjects = await doc.getFieldObjects()
+  }
+  return cachedFieldObjects
 }
 
 async function getHasJSActions() {
-  const hasJSActions = await toRaw(props.document)?.hasJSActions()
-  return hasJSActions
+  const doc = toRaw(props.document)
+  if (!doc) return false
+  if (cachedFor !== doc) {
+    cachedFor = doc
+    cachedFieldObjects = null
+    cachedHasJSActions = null
+  }
+  if (cachedHasJSActions === null) {
+    cachedHasJSActions = await doc.hasJSActions()
+  }
+  return cachedHasJSActions
 }
 
 async function getAnnotations() {
   const page = props.page
-
-  let annotations = await page?.getAnnotations({ intent: props.intent })
+  let list = await page?.getAnnotations({ intent: props.intent })
   if (props.annotationsFilter) {
     const filters = props.annotationsFilter
-    annotations = annotations!.filter((value) => {
+    list = list!.filter((value) => {
       const subType = value.subtype
       const fieldType = value.fieldType ? `${subType}.${value.fieldType}` : null
       return filters?.includes(subType) || (fieldType !== null && filters?.includes(fieldType))
     })
   }
-
-  return annotations
+  return list
 }
 
-async function render() {
-  layer.value!.replaceChildren?.()
+async function render(): Promise<void> {
+  if (!layer.value || !props.page || !props.viewport) return
+
+  layer.value.replaceChildren?.()
   for (const evtHandler of EVENTS_TO_HANDLER)
-    layer.value!.removeEventListener(evtHandler, annotationsEvents)
+    layer.value.removeEventListener(evtHandler, annotationsEvents)
 
   const pdf = toRaw(props.document)
+  if (!pdf) return
+
   const page = props.page
   const viewport = props.viewport
 
   annotations.value = await getAnnotations()
 
-  // Canvas map for push button widget
   const canvasMap = new Map<string, HTMLCanvasElement>([])
   for (const anno of annotations.value!) {
     if (anno.subtype === 'Widget' && anno.fieldType === 'Btn' && anno.pushButton) {
       const canvasWidth = anno.rect[2] - anno.rect[0]
       const canvasHeight = anno.rect[3] - anno.rect[1]
       const subCanvas = document.createElement('canvas')
-      subCanvas.setAttribute('width', (canvasWidth * viewport!.scale).toString())
-      subCanvas.setAttribute('height', (canvasHeight * viewport!.scale).toString())
+      subCanvas.setAttribute('width', (canvasWidth * viewport.scale).toString())
+      subCanvas.setAttribute('height', (canvasHeight * viewport.scale).toString())
       canvasMap.set(anno.id, subCanvas)
     }
   }
-  const annotationStorage = pdf!.annotationStorage
+
+  const annotationStorage = pdf.annotationStorage
   if (props.annotationsMap) {
     for (const [key, value] of Object.entries(props.annotationsMap))
       annotationStorage.setValue(key, value)
   }
 
-  const linkService = new SimpleLinkService();
+  const linkService = new SimpleLinkService()
 
   const layerParameters = {
     accessibilityManager: undefined,
     annotationCanvasMap: canvasMap,
-    div: layer.value!,
-    page: page!,
-    viewport: viewport!.clone({ dontFlip: true }),
+    div: layer.value,
+    page,
+    viewport: viewport.clone({ dontFlip: true }),
     annotationEditorUIManager: null,
     l10n: null,
     annotationStorage,
-    linkService: linkService,
+    linkService,
     commentManager: null,
     structTreeLayer: null
   }
 
+  // 并行获取 fieldObjects / hasJSActions（已做缓存，后续页面复用）
+  const [fieldObjects, hasJSActions] = await Promise.all([
+    getFieldObjects(),
+    getHasJSActions()
+  ])
+
   const renderParameters: AnnotationLayerParameters = {
     annotations: annotations.value!,
-    viewport: viewport!.clone({ dontFlip: true }),
-    linkService: linkService,
+    viewport: viewport.clone({ dontFlip: true }),
+    linkService,
     annotationCanvasMap: canvasMap,
-    div: layer.value!,
+    div: layer.value,
     annotationStorage,
     renderForms: !props.hideForms,
-    page: page!,
+    page,
     enableScripting: false,
-    hasJSActions: await getHasJSActions(),
-    fieldObjects: await getFieldObjects(),
-    downloadManager: null as unknown as IDownloadManager,
+    hasJSActions,
+    fieldObjects,
+    downloadManager: undefined,
     imageResourcesPath: props.imageResourcesPath,
   }
-  const task = new PDFJS.AnnotationLayer(layerParameters).render(renderParameters)
-  task.then(async () => {
-    emit('annotationLoaded', annotations.value!)
-  })
+
+  await new PDFJS.AnnotationLayer(layerParameters).render(renderParameters)
+
+  emit('annotationLoaded', annotations.value!)
 
   for (const evtHandler of EVENTS_TO_HANDLER)
     layer.value!.addEventListener(evtHandler, annotationsEvents)
 }
 
-// 记录上一次的 viewport，避免重复渲染
-let lastViewport: PageViewport | undefined = undefined
-
-watch(() => [props.page, props.viewport], ([newPage, newViewport]) => {
-  // 只有当 viewport 真正变化时才渲染
-  if (newPage && newViewport && layer.value && newViewport !== lastViewport) {
-    lastViewport = newViewport as PageViewport
-    render()
-  }
-}, { immediate: true })
+defineExpose({ render })
 </script>
 
 <template>

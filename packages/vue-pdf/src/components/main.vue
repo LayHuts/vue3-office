@@ -3,8 +3,6 @@
 import * as PDFJS from "pdfjs-dist";
 import { computed, onMounted, onUnmounted, shallowRef, ref, toRaw, watch } from "vue";
 
-// import "pdfjs-dist/web/pdf_viewer.css";
-
 import type {
   PDFDocumentLoadingTask,
   PDFPageProxy,
@@ -36,8 +34,8 @@ interface InternalProps {
 }
 
 defineOptions({
-  name: 'VuePdf'
-})
+  name: "VuePdf",
+});
 
 const props = withDefaults(
   defineProps<{
@@ -61,12 +59,17 @@ const props = withDefaults(
     highlightText?: string | string[];
     highlightOptions?: HighlightOptions;
     highlightPages?: number[];
+    /**
+     * 是否自动渲染。false 时需要外部调用 draw() 才会真正渲染（用于渲染队列调度）。
+     */
+    autoRender?: boolean;
   }>(),
   {
     page: 1,
     scale: 1,
     intent: "display",
     autoDestroy: false,
+    autoRender: true,
   }
 );
 
@@ -78,15 +81,26 @@ const emit = defineEmits<{
   (event: "annotationLoaded", payload: any[]): void;
   (event: "xfaLoaded"): void;
   (event: "error", payload: { type: string; message: string; error: Error }): void;
+  (event: "stateChange", state: number): void;
 }>();
+
+// 渲染状态（与 RenderingStates 对齐：0=INITIAL 1=RUNNING 2=PAUSED 3=FINISHED）
+const renderingState = ref(0);
+function setState(s: number) {
+  if (renderingState.value !== s) {
+    renderingState.value = s;
+    emit("stateChange", s);
+  }
+}
 
 // Template Refs
 const container = ref<HTMLSpanElement>();
 const loadingLayer = ref<HTMLSpanElement>();
+const textLayerRef = ref<any>();
+const annotationLayerRef = ref<any>();
 const loading = ref(false);
-let renderTask: RenderTask;
+let renderTask: RenderTask | null = null;
 
-// 使用 shallowRef 保持类型正确，避免深层响应式转换
 const internalProps = shallowRef<InternalProps>({
   viewport: undefined,
   document: undefined,
@@ -140,11 +154,11 @@ function getScale(page: PDFPageProxy): number {
   if (props.fitParent) {
     const parentWidth: number = (container.value!.parentNode! as HTMLElement)
       .clientWidth;
-    return  parentWidth / defaultViewport.width;
+    return parentWidth / defaultViewport.width;
   } else if (props.width) {
     return props.width / defaultViewport.width;
   } else if (props.height) {
-    return  props.height / defaultViewport.height;
+    return props.height / defaultViewport.height;
   }
   return props.scale;
 }
@@ -193,160 +207,216 @@ function getCurrentCanvas(): HTMLCanvasElement | null {
   return oldCanvas;
 }
 
-// PDF.js 风格：Canvas 复用和设置
+/**
+ * 创建离屏新 canvas（不加入 DOM），绘制完成后由 renderPage 替换旧 canvas。
+ * 这样在缩放重绘过程中旧 canvas 继续展示，不会出现白屏闪烁。
+ */
 function setupCanvas(viewport: PageViewport): HTMLCanvasElement {
-  const currentCanvas = getCurrentCanvas();
-  let canvas: HTMLCanvasElement;
-  let isReusing = false;
-
-  // PDF.js 风格：尽可能复用现有 canvas
-  if (currentCanvas) {
-    canvas = currentCanvas;
-    isReusing = true;
-  } else {
-    canvas = document.createElement("canvas");
-    canvas.style.display = "block";
-    canvas.setAttribute("dir", "ltr");
-  }
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("dir", "ltr");
+  canvas.style.display = "block";
 
   const outputScale = window.devicePixelRatio || 1;
-  const newWidth = Math.floor(viewport.width * outputScale);
-  const newHeight = Math.floor(viewport.height * outputScale);
-
-  // 只有尺寸变化时才更新 canvas 尺寸
-  if (canvas.width !== newWidth || canvas.height !== newHeight) {
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-  }
-
+  canvas.width = Math.floor(viewport.width * outputScale);
+  canvas.height = Math.floor(viewport.height * outputScale);
   canvas.style.width = `${Math.floor(viewport.width)}px`;
   canvas.style.height = `${Math.floor(viewport.height)}px`;
 
-  // --scale-factor property
   container.value?.style.setProperty("--scale-factor", `${viewport.scale}`);
   container.value?.style.setProperty("--user-unit", `${viewport.userUnit}`);
-  container.value?.style.setProperty("--total-scale-factor", "calc(var(--scale-factor) * var(--user-unit))");
+  container.value?.style.setProperty(
+    "--total-scale-factor",
+    "calc(var(--scale-factor) * var(--user-unit))"
+  );
 
-  // Also setting dimension properties for load layer
   if (loadingLayer.value) {
     loadingLayer.value.style.width = `${Math.floor(viewport.width)}px`;
     loadingLayer.value.style.height = `${Math.floor(viewport.height)}px`;
     loadingLayer.value.style.top = "0";
     loadingLayer.value.style.left = "0";
   }
-  loading.value = true;
-
-  // 如果是新创建的 canvas，需要添加到 DOM
-  if (!isReusing) {
-    // 移除 role="main" 的初始 canvas
-    const mainCanvas = container.value?.querySelector('canvas[role="main"]');
-    if (mainCanvas) {
-      mainCanvas.remove();
-    }
-  }
+  // 只有首次渲染（没有旧 canvas 可展示）时才显示 loading 遮罩
+  loading.value = !getCurrentCanvas();
 
   return canvas;
 }
 
+/** 把新 canvas 替换到 DOM，同时释放旧 canvas 显存 */
+function swapCanvas(newCanvas: HTMLCanvasElement): void {
+  const oldCanvases: HTMLCanvasElement[] = [];
+  container.value?.childNodes.forEach((el) => {
+    if ((el as HTMLElement).tagName === "CANVAS" && el !== newCanvas) {
+      oldCanvases.push(el as HTMLCanvasElement);
+    }
+  });
+
+  if (oldCanvases.length > 0) {
+    const first = oldCanvases[0];
+    first.parentNode?.replaceChild(newCanvas, first);
+    for (let i = 1; i < oldCanvases.length; i++) {
+      oldCanvases[i].remove();
+    }
+    // 释放旧 canvas 显存
+    for (const c of oldCanvases) {
+      c.width = 0;
+      c.height = 0;
+    }
+  } else {
+    container.value?.prepend(newCanvas);
+  }
+}
+
 function cancelRender() {
-  if (renderTask) renderTask.cancel();
+  if (renderTask) {
+    try { renderTask.cancel(); } catch { /* ignore */ }
+    renderTask = null;
+  }
+  // 同时取消文本层的 streamTextContent 任务
+  try { textLayerRef.value?.cancel?.(); } catch { /* ignore */ }
 }
 
-function renderPage(pageNum: number) {
-  toRaw(internalProps.value.document)
-    ?.getPage(pageNum)
-    .then((page) => {
-      // PDF.js 风格：先取消当前渲染任务
-      cancelRender();
+async function renderPage(pageNum: number): Promise<void> {
+  const doc = toRaw(internalProps.value.document);
+  if (!doc) return;
 
-      const defaultViewport = page.getViewport();
-      const viewportParams: GetViewportParameters = {
-        scale: getScale(page),
-        rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
-      };
-      const viewport = page.getViewport(viewportParams);
+  cancelRender();
+  setState(1); // RUNNING
 
-      const oldCanvas = getCurrentCanvas();
-      const canvas = setupCanvas(viewport);
-
-      const outputScale = window.devicePixelRatio || 1;
-      const transform =
-        outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-
-      // Render PDF page into canvas context
-      const renderContext: RenderParameters = {
-        canvas: canvas,
-        viewport,
-        annotationMode: props.hideForms
-          ? PDFJS.AnnotationMode.ENABLE
-          : PDFJS.AnnotationMode.ENABLE_FORMS,
-        transform,
-        intent: props.intent,
-      };
-
-      // PDF.js 风格：确保 canvas 在 DOM 中
-      if (!canvas.parentNode) {
-        container.value?.prepend(canvas);
-      }
-
-      // 使用 shallowRef 需要整体替换对象来触发响应
-      internalProps.value = {
-        ...internalProps.value,
-        page,
-        viewport,
-      };
-      renderTask = page.render(renderContext);
-      renderTask.promise
-        .then(() => {
-          loading.value = false;
-          paintWatermark(viewport.scale);
-          emit("loaded", internalProps.value.viewport!);
-        })
-        .catch((error) => {
-          console.error(`Page ${pageNum} render failed`, error);
-          loading.value = false;
-          // 只有非取消的错误才触发 error 事件
-          if (error?.name !== "RenderingCancelledException") {
-            emit("error", {
-              type: "render",
-              message: `Page ${pageNum} render failed`,
-              error,
-            });
-          }
-        });
-    }).catch((error) => {
-      console.error(`Failed to get page ${pageNum}:`, error);
-      loading.value = false;
-      emit("error", {
-        type: "page",
-        message: `Failed to get page ${pageNum}`,
-        error,
-      });
+  let page: PDFPageProxy;
+  try {
+    page = await doc.getPage(pageNum);
+  } catch (error) {
+    setState(0);
+    console.error(`Failed to get page ${pageNum}:`, error);
+    loading.value = false;
+    emit("error", {
+      type: "page",
+      message: `Failed to get page ${pageNum}`,
+      error: error as Error,
     });
-}
-
-function initDoc(proxy: PDFDocumentLoadingTask) {
-  if (!proxy?.promise) {
     return;
   }
-  proxy.promise
-    .then(async (document) => {
-      // 使用 shallowRef 需要整体替换对象
-      internalProps.value = {
-        ...internalProps.value,
-        document,
-      };
-      renderPage(props.page);
-    })
-    .catch((error) => {
-      loading.value = false;
-      emit("error", {
-        type: "load",
-        message: "Failed to load PDF document",
-        error,
-      });
-    });
 
+  const defaultViewport = page.getViewport();
+  const viewportParams: GetViewportParameters = {
+    scale: getScale(page),
+    rotation: getRotation((props.rotation || 0) + defaultViewport.rotation),
+  };
+  const viewport = page.getViewport(viewportParams);
+
+  const canvas = setupCanvas(viewport);
+
+  const outputScale = window.devicePixelRatio || 1;
+  const transform =
+    outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+
+  const renderContext: RenderParameters = {
+    canvas: canvas,
+    viewport,
+    annotationMode: props.hideForms
+      ? PDFJS.AnnotationMode.ENABLE
+      : PDFJS.AnnotationMode.ENABLE_FORMS,
+    transform,
+    intent: props.intent,
+  };
+
+  // 首次渲染时（没有旧 canvas 可展示）先把新 canvas 放进 DOM，让 loading 占位
+  const hasOldCanvas = !!getCurrentCanvas();
+  if (!hasOldCanvas && !canvas.parentNode) {
+    container.value?.prepend(canvas);
+  }
+
+  internalProps.value = {
+    ...internalProps.value,
+    page,
+    viewport,
+  };
+
+  const task = page.render(renderContext);
+  renderTask = task;
+
+  try {
+    await task.promise;
+    if (renderTask !== task) return; // 已被取消，最新任务接管
+
+    // 渲染成功后才把新 canvas 替换进 DOM（避免白屏）
+    if (hasOldCanvas) {
+      swapCanvas(canvas);
+    }
+    loading.value = false;
+    paintWatermark(viewport.scale);
+
+    // 串行渲染 TextLayer / AnnotationLayer，避免每页同时向 worker 抛 3-4 个任务
+    try {
+      if (props.textLayer && textLayerRef.value?.render) {
+        await textLayerRef.value.render();
+      }
+    } catch (e) {
+      /* layer 失败不阻塞主流程 */
+    }
+    try {
+      if (props.annotationLayer && annotationLayerRef.value?.render) {
+        await annotationLayerRef.value.render();
+      }
+    } catch (e) {
+      /* layer 失败不阻塞主流程 */
+    }
+
+    setState(3); // FINISHED
+    emit("loaded", internalProps.value.viewport!);
+  } catch (error: any) {
+    // 离屏 canvas 释放显存
+    if (!canvas.parentNode) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
+    loading.value = false;
+    if (error?.name === "RenderingCancelledException") {
+      setState(0); // 回到 INITIAL，允许重新排队
+      return;
+    }
+    setState(0);
+    console.error(`Page ${pageNum} render failed`, error);
+    emit("error", {
+      type: "render",
+      message: `Page ${pageNum} render failed`,
+      error,
+    });
+  } finally {
+    if (renderTask === task) renderTask = null;
+  }
+}
+
+async function initDoc(proxy: PDFDocumentLoadingTask): Promise<void> {
+  if (!proxy?.promise) return;
+  try {
+    const document = await proxy.promise;
+    internalProps.value = { ...internalProps.value, document };
+    if (props.autoRender) {
+      await renderPage(props.page);
+    }
+  } catch (error) {
+    loading.value = false;
+    emit("error", {
+      type: "load",
+      message: "Failed to load PDF document",
+      error: error as Error,
+    });
+  }
+}
+
+// 受控渲染：被 queue 调用
+async function draw(): Promise<void> {
+  if (renderingState.value === 1) return; // RUNNING 中，忽略重复调用
+  if (!internalProps.value.document) {
+    if (props.pdf) {
+      await props.pdf.promise.then((doc) => {
+        internalProps.value = { ...internalProps.value, document: doc };
+      });
+    }
+    if (!internalProps.value.document) return;
+  }
+  await renderPage(props.page);
 }
 
 watch(
@@ -356,39 +426,33 @@ watch(
     if (oldPdf && oldPdf !== pdf && !props.autoDestroy) {
       oldPdf.destroy();
     }
-    // For any changes on pdf, reinicialize all
-    if (pdf !== undefined){
-      initDoc(pdf)
-    };
+    setState(0);
+    if (pdf !== undefined) {
+      initDoc(pdf);
+    }
   },
-  { immediate: true }  // 使用 immediate 替代 onMounted 中的调用
+  { immediate: true }
 );
 
-// PDF.js 风格：分离 scale 变化和其他属性变化的处理
-// scale 变化由外部 Content.vue 控制延迟渲染
+// scale/width/height 变化：只有自动渲染模式才立即重绘
 let lastScale = props.scale;
 let lastWidth = props.width;
 let lastHeight = props.height;
 
 watch(
-  () => [
-    props.scale,
-    props.width,
-    props.height,
-  ],
+  () => [props.scale, props.width, props.height],
   ([newScale, newWidth, newHeight]) => {
-    // 只有当 scale/width/height 真正变化时才重新渲染
-    // 这允许外部组件通过 CSS transform 实现快速缩放预览
-    if (newScale !== lastScale || newWidth !== lastWidth || newHeight !== lastHeight) {
+    if (
+      newScale !== lastScale ||
+      newWidth !== lastWidth ||
+      newHeight !== lastHeight
+    ) {
       lastScale = newScale as number;
       lastWidth = newWidth as number | undefined;
       lastHeight = newHeight as number | undefined;
-
-      // 先取消当前渲染任务
       cancelRender();
-
-      // 重新渲染
-      if (internalProps.value.document) {
+      setState(0);
+      if (props.autoRender && internalProps.value.document) {
         renderPage(props.page);
       }
     }
@@ -396,59 +460,69 @@ watch(
 );
 
 watch(
-  () => [
-    props.rotation,
-    props.hideForms,
-    props.intent,
-  ],
+  () => [props.rotation, props.hideForms, props.intent],
   () => {
-    // 这些属性变化需要立即重新渲染
-    if (internalProps.value.document) {
+    cancelRender();
+    setState(0);
+    if (props.autoRender && internalProps.value.document) {
       renderPage(props.page);
     }
   }
 );
 
-// 单独监听 page 变化，避免与 initDoc 中的 renderPage 冲突
 watch(
   () => props.page,
   (newPage, oldPage) => {
-    // 只有当 page 真正变化且 document 已加载时才重新渲染
     if (newPage !== oldPage && internalProps.value.document) {
-      renderPage(newPage);
+      cancelRender();
+      setState(0);
+      if (props.autoRender) renderPage(newPage);
     }
   }
 );
 
 onMounted(() => {
-  // pdf 的初始化由 watch(props.pdf, { immediate: true }) 处理
-  // 这里不需要重复调用 initDoc
+  // pdf 初始化由 watch immediate 处理
 });
 
 onUnmounted(() => {
-  // Abort all network process and terminates the worker
+  cancelRender();
   if (props.autoDestroy) {
     props.pdf?.destroy();
   }
 });
 
-// Exposed method
 function destroy() {
   props.pdf?.destroy();
 }
 
 function reload() {
-  renderPage(props.page);
+  cancelRender();
+  setState(0);
+  if (internalProps.value.document) renderPage(props.page);
 }
 
 function cancel() {
   cancelRender();
+  if (renderingState.value === 1) setState(0);
+}
+
+function clearCanvas() {
+  const canvas = getCurrentCanvas();
+  if (canvas) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+  setState(0);
 }
 
 defineExpose({
   reload,
   cancel,
   destroy,
+  draw,
+  clearCanvas,
+  renderingState,
 });
 </script>
 
@@ -457,6 +531,7 @@ defineExpose({
     <canvas dir="ltr" style="display: block" role="main" />
     <AnnotationLayer
       v-if="annotationLayer"
+      ref="annotationLayerRef"
       :page="internalProps.page"
       :viewport="internalProps.viewport"
       :document="internalProps.document"
@@ -466,6 +541,7 @@ defineExpose({
     />
     <TextLayer
       v-if="textLayer"
+      ref="textLayerRef"
       :page="internalProps.page"
       :viewport="internalProps.viewport"
       v-bind="tlayerProps"

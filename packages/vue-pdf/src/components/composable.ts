@@ -11,8 +11,8 @@ import { addStylesToIframe, createIframe } from './utils/miscellaneous'
 // Could not find a way to make this work with vite, importing the worker entry bundle the whole worker to the the final output
 // https://erindoyle.dev/using-pdfjs-with-vite/
 // PDFJS.GlobalWorkerOptions.workerSrc = PDFWorker
-function configWorker(wokerSrc: string) {
-  PDFJS.GlobalWorkerOptions.workerSrc = wokerSrc
+function configWorker(workerSrc: string) {
+  PDFJS.GlobalWorkerOptions.workerSrc = workerSrc
 }
 
 /**
@@ -51,7 +51,7 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
   // const info = shallowRef<PDFInfo | {}>({})
   const info = shallowRef<Partial<PDFInfo>>({})
 
-  function processLoadingTask(source: PDFSrc) {
+  function processLoadingTask(source: NonNullable<PDFSrc>) {
     if (pdf.value){
       void pdf.value.destroy();
     }
@@ -59,11 +59,11 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
       void pdfDoc.value.destroy();
     }
 
-    const loadingTask = PDFJS.getDocument(source!)
-    
+    const loadingTask = PDFJS.getDocument(source)
+
     // 立即设置 pdf.value，避免后续重复触发 watch
     pdf.value = loadingTask
-    
+
     if (options.onProgress)
       loadingTask.onProgress = options.onProgress
 

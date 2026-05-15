@@ -49,6 +49,6 @@
   },
   "dependencies": {
     "@vue3-office/common": "workspace:*",
-    "pdfjs-dist": "5.4.449"
+    "pdfjs-dist": "5.7.284"
   }
 }

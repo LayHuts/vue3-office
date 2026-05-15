@@ -1,153 +1,89 @@
 /**
  * 页面缓存管理器
- * 管理 PDF 页面的渲染缓存
+ * 使用 Map 维护 LRU 顺序，超出容量时按"距离可见缓冲最远"淘汰
  */
 
 import { DEFAULT_CACHE_SIZE } from './ui_utils'
 
-/**
- * 页面缓存管理器
- */
 export class PageCacheManager {
-  private renderedPages: Set<number>
+  /** 使用 Map 保留插入顺序 = LRU 顺序（老的在前） */
+  private renderedPages: Map<number, number>
   private preloadPages: number
   private maxCacheSize: number
 
-  constructor(preloadPages = 2, maxCacheSize = DEFAULT_CACHE_SIZE) {
-    this.renderedPages = new Set()
+  constructor(preloadPages = 1, maxCacheSize = DEFAULT_CACHE_SIZE) {
+    this.renderedPages = new Map()
     this.preloadPages = preloadPages
-    this.maxCacheSize = maxCacheSize
+    this.maxCacheSize = Math.max(3, maxCacheSize)
   }
 
-  /**
-   * 判断是否应该渲染页面
-   * @param pageNum - 页码
-   * @param currentPage - 当前页码
-   * @param totalPages - 总页数
-   * @returns 是否应该渲染
-   */
-  shouldRenderPage(pageNum: number, currentPage: number, totalPages: number): boolean {
-    // 已经在缓存中
-    if (this.renderedPages.has(pageNum)) {
-      return true
-    }
-
-    // 初始加载前 5 页
-    if (this.renderedPages.size === 0 && pageNum <= 5) {
-      return true
-    }
-
-    // 在当前页面附近
-    if (Math.abs(pageNum - currentPage) <= this.preloadPages) {
-      return true
-    }
-
-    return false
-  }
-
-  /**
-   * 添加页面到缓存
-   * @param pageNum - 页码
-   */
+  /** 记录页面已渲染，并刷新 LRU 顺序 */
   addPage(pageNum: number): void {
-    this.renderedPages.add(pageNum)
+    if (this.renderedPages.has(pageNum)) this.renderedPages.delete(pageNum)
+    this.renderedPages.set(pageNum, performance.now())
   }
 
-  /**
-   * 检查页面是否在缓存中
-   * @param pageNum - 页码
-   * @returns 是否在缓存中
-   */
+  /** 移除某页（不属于 LRU 淘汰路径，用于主动清理） */
+  removePage(pageNum: number): void {
+    this.renderedPages.delete(pageNum)
+  }
+
   hasPage(pageNum: number): boolean {
     return this.renderedPages.has(pageNum)
   }
 
-  /**
-   * 获取缓存大小
-   * @returns 缓存中的页面数量
-   */
   get size(): number {
     return this.renderedPages.size
   }
 
   /**
-   * 更新缓存
-   * @param visibleIds - 可见页面 ID 集合
-   * @param totalPages - 总页数
-   * @returns 是否有更新
+   * 根据可见页计算 buffer（可见页 ± preloadPages）
    */
-  updateBuffer(visibleIds: Set<number>, totalPages: number): boolean {
-    let needsUpdate = false
-
-    // 添加可见页面
+  computeBuffer(visibleIds: Iterable<number>, totalPages: number): Set<number> {
+    const buffer = new Set<number>()
     for (const id of visibleIds) {
-      if (!this.renderedPages.has(id)) {
-        this.renderedPages.add(id)
-        needsUpdate = true
+      const from = Math.max(1, id - this.preloadPages)
+      const to = Math.min(totalPages, id + this.preloadPages)
+      for (let i = from; i <= to; i++) buffer.add(i)
+    }
+    return buffer
+  }
+
+  /**
+   * 淘汰位于 buffer 之外且超出缓存上限的最旧页面
+   * @returns 被淘汰页码数组
+   */
+  evict(buffer: Set<number>): number[] {
+    const toDestroy: number[] = []
+    if (this.renderedPages.size <= this.maxCacheSize) return toDestroy
+
+    // Map 顺序即 LRU 顺序，最早插入/访问的在前
+    for (const pageNum of Array.from(this.renderedPages.keys())) {
+      if (this.renderedPages.size <= this.maxCacheSize) break
+      if (!buffer.has(pageNum)) {
+        this.renderedPages.delete(pageNum)
+        toDestroy.push(pageNum)
       }
     }
-
-    // 预加载可见页面周围的页面
-    for (const id of visibleIds) {
-      for (
-        let i = Math.max(1, id - this.preloadPages);
-        i <= Math.min(totalPages, id + this.preloadPages);
-        i++
-      ) {
-        if (!this.renderedPages.has(i)) {
-          this.renderedPages.add(i)
-          needsUpdate = true
-        }
-      }
-    }
-
-    return needsUpdate
+    return toDestroy
   }
 
   /**
-   * 预加载指定页面周围的页面
-   * @param pageNum - 中心页码
-   * @param totalPages - 总页数
+   * 预加载中心页周围页面（用于跳转）
    */
-  preloadAround(pageNum: number, totalPages: number): void {
-    for (
-      let i = Math.max(1, pageNum - this.preloadPages);
-      i <= Math.min(totalPages, pageNum + this.preloadPages);
-      i++
-    ) {
-      this.renderedPages.add(i)
-    }
+  markBufferAround(pageNum: number, totalPages: number): Set<number> {
+    const buffer = new Set<number>()
+    const from = Math.max(1, pageNum - this.preloadPages)
+    const to = Math.min(totalPages, pageNum + this.preloadPages)
+    for (let i = from; i <= to; i++) buffer.add(i)
+    return buffer
   }
 
-  /**
-   * 初始化渲染
-   * @param currentPage - 当前页码
-   * @param totalPages - 总页数
-   * @param initialCount - 初始渲染页数
-   */
-  initializeRendering(currentPage: number, totalPages: number, initialCount = 5): void {
-    // 渲染前几页
-    const count = Math.min(initialCount, totalPages)
-    for (let i = 1; i <= count; i++) {
-      this.renderedPages.add(i)
-    }
-
-    // 预加载当前页面周围
-    this.preloadAround(currentPage, totalPages)
-  }
-
-  /**
-   * 清空缓存
-   */
   clear(): void {
     this.renderedPages.clear()
   }
 
-  /**
-   * 获取所有缓存的页面
-   * @returns 页面集合
-   */
-  getPages(): Set<number> {
-    return new Set(this.renderedPages)
+  get preloadCount(): number {
+    return this.preloadPages
   }
 }
