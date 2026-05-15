@@ -49,6 +49,7 @@
         :rendering-queue="renderingQueue"
         :is-visible="!sidebarCollapsed"
         :is-loading-outline="isGeneratingOutline"
+        :outline-default-expand-level="outlineDefaultExpandLevel"
         @tab-change="handleTabChange"
       />
 
@@ -77,7 +78,7 @@ import { usePDF } from '../components'
 import { Header, LeftSidebar, Content, PrintProgressDialog } from './components'
 import { EventBus, PDFLinkService, PDFRenderingQueue } from './services'
 import { SidebarView, PDF_TO_CSS_UNITS, MIN_SCALE, MAX_SCALE } from './utils'
-import { generateOutlineFromAnnotations, convertPdfOutline } from './utils'
+import { generateOutlineFromAnnotations, convertPdfOutline, enhanceOutline } from './utils'
 import type { OutlineItem } from './types'
 import './styles/index.css'
 
@@ -94,10 +95,20 @@ const props = withDefaults(defineProps<{
   filename?: string
   showDownload?: boolean
   showPrint?: boolean
+  /**
+   * 是否自动补全 outline 中缺失的下级编号子项（例如 outline 里只有 8.3，
+   * 但正文实际上还有 8.3.1 / 8.3.2 时尝试扫描并挂回去）。
+   * 默认关闭，开启会带来一定扫描开销。
+   */
+  autoEnhanceOutline?: boolean
+  /** 目录默认展开到的层级（含），默认 1 */
+  outlineDefaultExpandLevel?: number
 }>(), {
   filename: '',
   showDownload: true,
-  showPrint: true
+  showPrint: true,
+  autoEnhanceOutline: false,
+  outlineDefaultExpandLevel: 1,
 })
 
 const { createUrl } = useObjectUrl();
@@ -166,6 +177,9 @@ const loadError = ref<string | null>(null)
 const generatedOutline = ref<OutlineItem[]>([])
 const isGeneratingOutline = ref(false)
 
+// 从 PDF 内置 outline 转换+（可选）增强后的目录
+const builtinOutline = ref<OutlineItem[]>([])
+
 // 使用 usePDF 加载 PDF
 const { pdf, pages, info, download, printFast, cancelPrint } = usePDF(
   pdfSrc,
@@ -181,15 +195,7 @@ const { pdf, pages, info, download, printFast, cancelPrint } = usePDF(
 
 // 目录数据（优先使用 PDF 内置 outline，否则使用生成的）
 const outlineTree = computed(() => {
-  if (info.value?.outline && info.value.outline.length > 0) {
-    const tree = convertPdfOutline(info.value.outline)
-    console.log('Using PDF built-in outline:', tree.length, 'root items')
-    return tree
-  }
-
-  if (generatedOutline.value.length > 0) {
-    console.log('Using generated outline from annotations:', generatedOutline.value.length, 'root items')
-  }
+  if (builtinOutline.value.length > 0) return builtinOutline.value
   return generatedOutline.value
 })
 
@@ -211,14 +217,25 @@ watch([pdf, pages], ([pdfValue, pagesValue]) => {
       // 触发加载完成事件
       emit('rendered', { totalPages: pagesValue })
 
-      // 如果没有内置 outline，尝试从 annotations 生成
-      if (!info.value?.outline || info.value.outline.length === 0) {
-        isGeneratingOutline.value = true
-        try {
-          generatedOutline.value = await generateOutlineFromAnnotations(doc)
-        } finally {
-          isGeneratingOutline.value = false
+      // 构建目录：内置 outline 优先，否则从 Link Annotations 生成
+      const hasBuiltin = info.value?.outline && info.value.outline.length > 0
+      isGeneratingOutline.value = true
+      try {
+        if (hasBuiltin) {
+          let tree = convertPdfOutline(info.value!.outline as any[])
+          if (props.autoEnhanceOutline) {
+            tree = await enhanceOutline(doc, tree)
+          }
+          builtinOutline.value = tree
+        } else {
+          let tree = await generateOutlineFromAnnotations(doc)
+          if (props.autoEnhanceOutline && tree.length > 0) {
+            tree = await enhanceOutline(doc, tree)
+          }
+          generatedOutline.value = tree
         }
+      } finally {
+        isGeneratingOutline.value = false
       }
     }).catch((error: any) => {
       console.error('PDF加载失败:', error)

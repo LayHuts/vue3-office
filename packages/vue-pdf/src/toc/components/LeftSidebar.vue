@@ -25,7 +25,7 @@
           </svg>
           <p>此文档没有目录</p>
         </div>
-        <PDFOutlineViewer v-else :outline="outlineTree" :pdf-document="pdfDocument" :event-bus="eventBus" :link-service="linkService" />
+        <PDFOutlineViewer v-else :outline="outlineTree" :pdf-document="pdfDocument" :event-bus="eventBus" :link-service="linkService" :default-expand-level="outlineDefaultExpandLevel" />
       </div>
 
       <div v-show="activeTab === 'thumbnails'" class="thumbnails-view vue-pdf-scrollbar" ref="thumbnailContainerRef">
@@ -53,6 +53,7 @@ const props = defineProps<{
   renderingQueue: PDFRenderingQueue
   isVisible?: boolean
   isLoadingOutline?: boolean
+  outlineDefaultExpandLevel?: number
 }>()
 
 const emit = defineEmits<{ 'tab-change': [tab: string] }>()

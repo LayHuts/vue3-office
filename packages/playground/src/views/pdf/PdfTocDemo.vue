@@ -27,6 +27,7 @@ function onError(e: Error){
     <template #default="{url}: PreviewSlotProps">
       <VuePdfToc
         :src="url"
+        auto-enhance-outline
         @rendered="onRendered"
         @error="onError"
       />

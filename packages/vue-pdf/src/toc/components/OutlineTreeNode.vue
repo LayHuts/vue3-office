@@ -3,12 +3,12 @@
     <div class="treeItem" :class="{ selected: item === currentTreeItem, withNesting: hasChildren }" :style="{ paddingLeft: `${level * 20 + 8}px` }">
       <div v-if="hasChildren" class="treeItemToggler" :class="{ treeItemsHidden: !expanded }" @click.stop="toggleExpand"></div>
       <div v-else class="treeItemToggler-placeholder"></div>
-      <a :href="getDestinationHash(item.dest)" class="outline-link" :style="linkStyle" @click.prevent="handleClick">
+      <a :href="destinationHash" class="outline-link" :style="linkStyle" @click.prevent="handleClick">
         {{ normalizeTextContent(item.title) }}
       </a>
     </div>
     <div v-if="hasChildren && expanded" class="tree-children">
-      <OutlineTreeNode v-for="(child, index) in item.items" :key="index" :item="child" :level="level + 1" :link-service="linkService" :current-tree-item="currentTreeItem" @item-click="$emit('item-click', $event)" />
+      <OutlineTreeNode v-for="(child, index) in item.items" :key="index" :item="child" :level="level + 1" :link-service="linkService" :current-tree-item="currentTreeItem" :default-expand-level="defaultExpandLevel" @item-click="$emit('item-click', $event)" />
     </div>
   </div>
 </template>
@@ -18,16 +18,21 @@ import { ref, computed } from 'vue'
 import type { PDFLinkService } from '../services'
 import type { OutlineItem } from '../types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   item: OutlineItem
   level: number
   linkService: PDFLinkService
   currentTreeItem: any
-}>()
+  /** 默认展开到的层级（含），超过该 level 的节点默认折叠 */
+  defaultExpandLevel?: number
+}>(), {
+  defaultExpandLevel: 1,
+})
 
 const emit = defineEmits<{ 'item-click': [item: OutlineItem] }>()
 
-const expanded = ref(false)
+// 根据 level 决定默认展开状态：level <= defaultExpandLevel 时默认展开
+const expanded = ref(props.level <= props.defaultExpandLevel)
 const hasChildren = computed(() => props.item.items && props.item.items.length > 0)
 const linkStyle = computed(() => {
   const style: any = {}
@@ -36,9 +41,11 @@ const linkStyle = computed(() => {
   return style
 })
 
+// 缓存 dest -> hash 的计算，避免每次 render 都调用 linkService
+const destinationHash = computed(() => props.linkService.getDestinationHash(props.item.dest))
+
 function toggleExpand() { expanded.value = !expanded.value }
 function handleClick() { emit('item-click', props.item) }
-function getDestinationHash(dest: any): string { return props.linkService.getDestinationHash(dest) }
 function normalizeTextContent(str: string): string {
   const result = str
     .replace(/[\x00-\x1F]/g, '') // 控制字符
