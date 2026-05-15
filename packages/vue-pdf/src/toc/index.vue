@@ -404,6 +404,7 @@ function handleKeydown(event: KeyboardEvent) {
   height: 100%;
   min-height: 0;
   flex: 1;
+  overflow: hidden;
   background: var(--pdf-bg-darker);
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

@@ -80,6 +80,8 @@ function handleTabChange(tab: string) {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar-tabs { display: flex; background: var(--pdf-bg-panel);}
@@ -102,7 +104,7 @@ function handleTabChange(tab: string) {
 .tab-btn.active { background: var(--pdf-primary-color); color: #fff; }
 
 .sidebar-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-.outline-view, .thumbnails-view { flex: 1; overflow-y: auto; padding: 0; min-height: 0; }
+.outline-view, .thumbnails-view { flex: 1; overflow-y: auto; padding: 0; min-height: 0; contain: strict; }
 
 .empty-state, .loading-state {
   display: flex;
