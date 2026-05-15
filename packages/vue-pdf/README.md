@@ -1,92 +1,104 @@
 <div align="center">
-  <h1>Vue3 Office</h1>
-  <p>一套基于 Vue 3 的办公文档及多媒体预览组件库</p>
-  <p>支持 PDF / DOCX / Excel / 视频 / 音频 在线预览</p>
+  <h1>@vue3-office/vue-pdf</h1>
+  <p>基于 <a href="https://github.com/mozilla/pdf.js">pdfjs-dist</a> 的 Vue 3 PDF 预览组件库</p>
+  <p>提供两套使用方式：底层的单页组件 <code>VuePdf</code>，以及开箱即用、内置目录 / 缩略图 / 工具栏 / 打印的完整阅读器 <code>VuePdfToc</code></p>
 </div>
 
 <p align="center">
   <img src="https://img.shields.io/badge/vue-3.5+-brightgreen" />
+  <img src="https://img.shields.io/badge/pdfjs--dist-5.7-orange" />
   <img src="https://img.shields.io/badge/license-MIT-blue" />
-  <img src="https://img.shields.io/badge/pnpm-10+-orange" />
-  <img src="https://img.shields.io/badge/node-%3E%3D22.14-green" />
 </p>
 
-## 简介
+## 目录
 
-Vue3 Office 是一个 monorepo 项目，提供了一系列开箱即用的 Vue 3 组件，用于在浏览器中预览各类办公文档和多媒体文件。
+- [安装](#安装)
+- [导出内容总览](#导出内容总览)
+- [VuePdf 单页组件](#vuepdf-单页组件)
+  - [基本用法](#基本用法)
+  - [多页渲染](#多页渲染)
+  - [自适应宽度 / 指定宽高 / 缩放](#自适应宽度--指定宽高--缩放)
+  - [开启文本层与注释层](#开启文本层与注释层)
+  - [水印](#水印)
+  - [文本高亮](#文本高亮)
+  - [XFA 表单](#xfa-表单)
+  - [Props 完整列表](#vuepdf-props-完整列表)
+  - [Events 完整列表](#vuepdf-events-完整列表)
+  - [Slots](#vuepdf-slots)
+  - [通过 ref 调用的方法](#vuepdf-通过-ref-调用的方法)
+  - [usePDF 组合式函数](#usepdf-组合式函数)
+- [VuePdfToc 完整阅读器](#vuepdftoc-完整阅读器)
+  - [快速开始](#快速开始)
+  - [文件来源支持](#文件来源支持)
+  - [目录的两种来源](#目录的两种来源)
+  - [Props 完整列表](#vuepdftoc-props-完整列表)
+  - [Events](#vuepdftoc-events)
+  - [键盘快捷键](#键盘快捷键)
+- [全局注册](#全局注册)
+- [SSR / Nuxt 注意事项](#ssr--nuxt-注意事项)
+- [常见问题](#常见问题)
 
-| 包名 | 说明 | 核心依赖 |
-| --- | --- | --- |
-| `@vue3-office/vue-pdf` | PDF 预览（支持文本层、注释层、水印、高亮、XFA 表单） | pdfjs-dist |
-| `@vue3-office/vue-docx` | Word 文档预览 | docx-preview |
-| `@vue3-office/vue-excel` | Excel 表格预览 | exceljs + x-data-spreadsheet |
-| `@vue3-office/vue-video` | 视频播放器（画中画、迷你模式） | xgplayer |
-| `@vue3-office/vue-audio` | 音频播放器（歌词、播放列表、固定模式） | colorthief |
-| `@vue3-office/common` | 公共工具库（请求、下载、类型定义） | — |
-
-## 环境要求
-
-- Node.js >= 22.14.0
-- pnpm >= 10.0.0
-- Vue >= 3.5.24
+---
 
 ## 安装
 
 ```bash
-# 安装 PDF 预览
 pnpm add @vue3-office/vue-pdf
-
-# 安装 Word 预览
-pnpm add @vue3-office/vue-docx
-
-# 安装 Excel 预览
-pnpm add @vue3-office/vue-excel
-
-# 安装视频播放器
-pnpm add @vue3-office/vue-video
-
-# 安装音频播放器
-pnpm add @vue3-office/vue-audio
-```
-
-也可以使用 npm / yarn：
-
-```bash
+# 或
 npm install @vue3-office/vue-pdf
 yarn add @vue3-office/vue-pdf
 ```
 
----
+需要 Vue >= 3.5.24，PDF.js Worker 已在内部通过 `pdfjs-dist/build/pdf.worker.min?url` 自动注入，无需手动配置 `workerSrc`。
 
-## 本地开发
+记得引入样式（`VuePdfToc` 必需，`VuePdf` 用到文本层 / 注释层时也需要）：
 
-```bash
-# 克隆仓库
-git clone <repo-url>
-
-# 安装依赖
-pnpm install
-
-# 启动 playground
-pnpm dev
-
-# 启动文档站点
-pnpm dev:docs
-
-# 构建
-pnpm build
+```ts
+import '@vue3-office/vue-pdf/style.css'
 ```
 
 ---
 
-## @vue3-office/vue-pdf
+## 导出内容总览
 
-PDF 文档预览组件，基于 `pdfjs-dist`，支持文本选择、注释交互、水印、文本高亮、XFA 表单等。
+```ts
+import {
+  // 组件
+  VuePdf,             // 单页组件（底层）
+  VuePdfToc,          // 完整阅读器（带工具栏 + 侧边栏 + 目录）
+  VuePDFPlugin,       // Vue 插件，调用后全局注册 <VuePdf />
+
+  // 组合式 API
+  usePDF,             // 加载 PDF 并返回任务、页数、信息、下载、打印等
+
+  // 工具
+  parseDestOffset,    // 解析目标位置数组
+  getDestCssOffsetY,  // 计算目录跳转目标在 CSS 像素下的纵向偏移
+  useObjectUrl,       // 来自 @vue3-office/common，处理 string/Blob/ArrayBuffer 输入
+
+  // 类型
+  type FileSrc,
+  type WatermarkOptions,
+  type HighlightOptions,
+  type AnnotationEventPayload,
+  type HighlightEventPayload,
+  type LoadedEventPayload,
+  type TextLayerLoadedEventPayload,
+  type PDFInfo,
+  type PDFDestination,
+} from '@vue3-office/vue-pdf'
+```
+
+---
+
+## VuePdf 单页组件
+
+`VuePdf` 是一个 **只渲染单页** 的底层组件，外层多页布局、滚动、虚拟列表等都由你自己控制。它接收的是 `usePDF` 返回的 `PDFDocumentLoadingTask`，而不是文件 URL，这样多个 `VuePdf` 实例可以共享同一份解析结果。
 
 ### 基本用法
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 import '@vue3-office/vue-pdf/style.css'
 
@@ -94,677 +106,521 @@ const { pdf, pages, info } = usePDF('https://example.com/sample.pdf')
 </script>
 
 <template>
-  <VuePdf :pdf="pdf" />
+  <div>
+    <p>共 {{ pages }} 页</p>
+    <VuePdf :pdf="pdf" :page="1" />
+  </div>
 </template>
 ```
 
 ### 多页渲染
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { VuePdf, usePDF } from '@vue3-office/vue-pdf'
 
-const { pdf, pages } = usePDF('sample.pdf')
+const { pdf, pages } = usePDF('/sample.pdf')
 </script>
 
 <template>
-  <VuePdf v-for="page in pages" :key="page" :pdf="pdf" :page="page" />
-</template>
-```
-
-### 启用文本层和注释层
-
-```vue
-<template>
-  <VuePdf :pdf="pdf" text-layer annotation-layer />
-</template>
-```
-
-### 水印 & 高亮
-
-```vue
-<template>
   <VuePdf
+    v-for="page in pages"
+    :key="page"
     :pdf="pdf"
-    watermark-text="机密文件"
-    :watermark-options="{ columns: 4, rows: 4, rotation: 45, fontSize: 18, color: 'rgba(211,210,211,0.4)' }"
-    highlight-text="搜索关键词"
-    :highlight-options="{ ignoreCase: true, completeWords: false }"
+    :page="page"
+    fit-parent
   />
 </template>
+```
+
+### 自适应宽度 / 指定宽高 / 缩放
+
+| 模式 | 写法 | 说明 |
+| --- | --- | --- |
+| 固定缩放 | `:scale="1.5"` | 默认即此模式，1 = 100% |
+| 撑满父容器宽度 | `fit-parent` | 监听父元素 `clientWidth`，等比例计算 scale |
+| 指定宽度 | `:width="800"` | 单位 px，按宽度反推 scale |
+| 指定高度 | `:height="600"` | 单位 px，按高度反推 scale |
+| 旋转 | `:rotation="90"` | 仅支持 90 的整数倍 |
+
+```vue
+<VuePdf :pdf="pdf" :page="1" fit-parent />
+<VuePdf :pdf="pdf" :page="1" :width="800" />
+<VuePdf :pdf="pdf" :page="1" :scale="1.5" :rotation="90" />
+```
+
+### 开启文本层与注释层
+
+文本层支持鼠标选中、复制；注释层负责链接、表单等可交互元素。
+
+```vue
+<VuePdf
+  :pdf="pdf"
+  :page="page"
+  text-layer
+  annotation-layer
+  @text-loaded="onTextLoaded"
+  @annotation="onAnnotation"
+  @annotation-loaded="onAnnotationLoaded"
+/>
+```
+
+注释相关 props：
+
+| Prop | 作用 |
+| --- | --- |
+| `annotationsFilter` | 字符串数组，只渲染指定子类型的注释，如 `['Link', 'Widget']` |
+| `annotationsMap` | 透传给 PDF.js 的 `annotationStorage` 数据，常用于回填表单数据 |
+| `hideForms` | `true` 时隐藏表单控件（内部把 `AnnotationMode` 从 `ENABLE_FORMS` 切回 `ENABLE`） |
+| `imageResourcesPath` | PDF.js 注释图标资源路径，自托管时使用 |
+
+### 水印
+
+```vue
+<VuePdf
+  :pdf="pdf"
+  :page="page"
+  watermark-text="机密文件"
+  :watermark-options="{
+    columns: 4,
+    rows: 4,
+    rotation: 45,
+    fontSize: 18,
+    color: 'rgba(211,210,211,0.4)',
+  }"
+/>
+```
+
+`WatermarkOptions` 字段（均为可选）：
+
+| 字段 | 类型 | 默认值 |
+| --- | --- | --- |
+| `columns` | `number` | `4` |
+| `rows` | `number` | `4` |
+| `rotation` | `number`（角度） | `45` |
+| `fontSize` | `number`（px） | `18` |
+| `color` | `string` | `'rgba(211, 210, 211, 0.4)'` |
+
+水印是直接画在 canvas 上的，所以会跟随 `scale` 自动缩放。
+
+### 文本高亮
+
+需要同时开启 `text-layer`：
+
+```vue
+<VuePdf
+  :pdf="pdf"
+  :page="page"
+  text-layer
+  :highlight-text="['关键词1', '关键词2']"
+  :highlight-options="{ ignoreCase: true, completeWords: false }"
+  :highlight-pages="[1, 3, 5]"
+  @highlight="onHighlight"
+/>
+```
+
+| Prop | 类型 | 说明 |
+| --- | --- | --- |
+| `highlightText` | `string \| string[]` | 单个词或多个词 |
+| `highlightOptions.ignoreCase` | `boolean` | 是否忽略大小写 |
+| `highlightOptions.completeWords` | `boolean` | 是否仅匹配完整词 |
+| `highlightPages` | `number[]` | 限定生效页码，留空则所有页生效 |
+
+`highlight` 事件回调：
+
+```ts
+{
+  matches: Match[]
+  page: number
+  textContent: TextContent
+  textDivs: HTMLElement[]
+}
 ```
 
 ### XFA 表单
 
-```vue
-<script setup>
-const { pdf } = usePDF({ url: '/xfa.pdf', enableXfa: true })
-</script>
-
-<template>
-  <VuePdf :pdf="pdf" />
-</template>
-```
-
-### `usePDF` 组合式函数
+XFA 表单需要在加载阶段开启：
 
 ```ts
-const { pdf, pages, info, download, print, printFast, cancelPrint, getPDFDestination } = usePDF(src, options?)
+const { pdf } = usePDF({
+  url: '/forms/xfa.pdf',
+  enableXfa: true,
+})
 ```
 
-| 参数 | 类型 | 说明 |
-| --- | --- | --- |
-| `src` | `string \| URL \| TypedArray \| DocumentInitParameters \| Ref<...>` | PDF 来源（URL、二进制数据或配置对象） |
-| `options.password` | `string` | 文档密码 |
-| `options.onProgress` | `(progressData) => void` | 加载进度回调 |
-| `options.onPassword` | `(updatePassword, reason) => void` | 密码请求回调（设置后 `password` 选项被忽略） |
-| `options.onError` | `(error) => void` | 加载错误回调 |
+随后 `VuePdf` 会自动渲染 XFA 层并触发 `xfaLoaded` 事件。
 
-**返回值：**
-
-| 属性 | 类型 | 说明 |
-| --- | --- | --- |
-| `pdf` | `Ref<PDFDocumentLoadingTask>` | PDF 加载任务，传给 `<VuePdf :pdf="pdf" />` |
-| `pages` | `Ref<number>` | 总页数 |
-| `info` | `Ref<PDFInfo>` | 文档元信息（metadata、attachments、outline 等） |
-| `download(filename?)` | `Function` | 下载 PDF 文件 |
-| `print(dpi?, filename?, onProgress?)` | `Function` | 打印（逐页渲染，高质量） |
-| `printFast(dpi?, filename?, onProgress?)` | `Function` | 快速打印（并行渲染，低内存） |
-| `cancelPrint()` | `Function` | 取消正在进行的打印 |
-| `getPDFDestination(dest)` | `Function` | 解析 PDF 目标位置 |
-
-### `VuePdf` 组件 Props
+### VuePdf Props 完整列表
 
 | Prop | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `pdf` | `PDFDocumentLoadingTask` | — | `usePDF` 返回的 PDF 对象 |
-| `page` | `number` | `1` | 要渲染的页码 |
-| `scale` | `number` | `1` | 缩放比例 |
-| `rotation` | `number` | — | 旋转角度（需为 90 的倍数） |
-| `fitParent` | `boolean` | — | 自适应父容器宽度 |
-| `width` | `number` | — | 指定渲染宽度（px） |
-| `height` | `number` | — | 指定渲染高度（px） |
-| `textLayer` | `boolean` | — | 启用文本选择层 |
-| `annotationLayer` | `boolean` | — | 启用注释交互层 |
-| `annotationsFilter` | `string[]` | — | 注释类型过滤 |
-| `annotationsMap` | `object` | — | 注释映射 |
-| `hideForms` | `boolean` | — | 隐藏表单 |
-| `imageResourcesPath` | `string` | — | 注释图片资源路径 |
-| `intent` | `string` | `"display"` | 渲染意图 |
-| `autoDestroy` | `boolean` | `false` | 组件卸载时自动销毁 PDF 文档 |
+| `pdf` | `PDFDocumentLoadingTask` | — | `usePDF` 返回的加载任务，**核心入参** |
+| `page` | `number` | `1` | 渲染的页码，从 1 开始 |
+| `scale` | `number` | `1` | 缩放系数，1 = 原始尺寸 |
+| `rotation` | `number` | — | 旋转角度，必须是 90 的倍数；非法值会被纠正为 0 |
+| `fitParent` | `boolean` | `false` | 启用后忽略 `scale`，按父元素 `clientWidth` 自适应 |
+| `width` | `number` | — | 指定渲染宽度（px），优先级低于 `fitParent` |
+| `height` | `number` | — | 指定渲染高度（px），优先级低于 `width` |
+| `textLayer` | `boolean` | `false` | 开启文本选择层 |
+| `annotationLayer` | `boolean` | `false` | 开启注释 / 表单交互层 |
+| `annotationsFilter` | `string[]` | — | 注释类型白名单 |
+| `annotationsMap` | `object` | — | `annotationStorage` 初始数据 |
+| `hideForms` | `boolean` | `false` | 隐藏表单 |
+| `imageResourcesPath` | `string` | — | 注释图标资源路径 |
+| `intent` | `string` | `'display'` | PDF.js 渲染意图，可选 `'display'` / `'print'` / `'any'` |
+| `autoDestroy` | `boolean` | `false` | 组件卸载时是否自动 `pdf.destroy()`；多实例共享同一个 `pdf` 时建议保持 `false`，由 `usePDF` 统一管理生命周期 |
+| `autoRender` | `boolean` | `true` | `false` 时不会在 prop 变化时自动渲染，需要外部调用 `draw()`，配合渲染队列使用 |
 | `watermarkText` | `string` | — | 水印文字 |
-| `watermarkOptions` | `WatermarkOptions` | — | 水印配置 |
-| `highlightText` | `string \| string[]` | — | 高亮搜索文本 |
-| `highlightOptions` | `HighlightOptions` | — | 高亮配置 |
-| `highlightPages` | `number[]` | — | 限定高亮的页码 |
+| `watermarkOptions` | `WatermarkOptions` | 见上文 | 水印样式 |
+| `highlightText` | `string \| string[]` | — | 高亮文本 |
+| `highlightOptions` | `HighlightOptions` | — | 高亮选项 |
+| `highlightPages` | `number[]` | — | 限定高亮页码 |
 
-### `VuePdf` 事件
+> 内部使用了 **离屏 canvas + 渲染完成后再替换** 的策略，所以缩放 / 翻页时不会出现白屏闪烁；旧 canvas 会立即释放显存。
 
-| 事件 | 回调参数 | 说明 |
+### VuePdf Events 完整列表
+
+| 事件 | 回调参数类型 | 触发时机 |
 | --- | --- | --- |
-| `loaded` | `PageViewport` | 页面渲染完成 |
-| `error` | `{ type, message, error }` | 渲染/加载错误 |
-| `annotation` | `{ type, data }` | 注释交互（如点击链接） |
-| `annotationLoaded` | `any[]` | 注释层加载完成 |
-| `highlight` | `{ matches, page, textContent, textDivs }` | 文本高亮匹配 |
-| `textLoaded` | `{ textDivs, textContent }` | 文本层加载完成 |
-| `xfaLoaded` | — | XFA 层加载完成 |
+| `loaded` | `PageViewport` | 当前页 canvas 渲染完成（注意：此时文本层 / 注释层可能还在串行渲染中） |
+| `error` | `{ type: 'load' \| 'page' \| 'render', message: string, error: Error }` | PDF 加载、获取页或渲染失败 |
+| `annotation` | `{ type: string, data: any }` | 用户与注释交互（如点击链接），`type` 常见值：`'link'`（外链）、`'internal-link'`（内部跳转，含 `data.referencedPage` 和 `data.destArray`） |
+| `annotationLoaded` | `any[]` | 注释层 DOM 渲染完成，参数为注释数组 |
+| `highlight` | `HighlightEventPayload` | 文本高亮匹配完成 |
+| `textLoaded` | `{ textDivs: HTMLElement[], textContent }` | 文本层渲染完成 |
+| `xfaLoaded` | — | XFA 层渲染完成 |
+| `stateChange` | `number` | 渲染状态切换：`0` 初始 / `1` 渲染中 / `2` 暂停 / `3` 完成 |
 
-### `VuePdf` 暴露方法（ref 调用）
+#### 注释跳转完整示例
 
-| 方法 | 说明 |
-| --- | --- |
-| `reload()` | 重新渲染当前页 |
-| `cancel()` | 取消当前渲染任务 |
-| `destroy()` | 销毁 PDF 文档 |
-
-### `VuePdf` 插槽
-
-| 插槽 | 作用域参数 | 说明 |
-| --- | --- | --- |
-| `default` | — | 页面加载中的占位内容 |
-| `overlay` | `{ width, height }` | 页面上方的覆盖层（可用于自定义标注） |
-
----
-
-### `VuePdfToc` 完整 PDF 阅读器
-
-内置工具栏、侧边栏（缩略图 + 目录）、翻页、缩放、下载、打印的完整阅读器组件。
+PDF 内目录链接通常是 `internal-link`，配合 `getDestCssOffsetY` 可以精确滚动到目标位置：
 
 ```vue
-<script setup>
-import { VuePdfToc } from '@vue3-office/vue-pdf'
-import '@vue3-office/vue-pdf/style.css'
-</script>
+<script setup lang="ts">
+import { ref, useTemplateRef } from 'vue'
+import { VuePdf, usePDF, getDestCssOffsetY } from '@vue3-office/vue-pdf'
 
-<template>
-  <VuePdfToc src="https://example.com/sample.pdf" style="height: 100vh" />
-</template>
-```
+const page = ref(1)
+const viewerRef = useTemplateRef<HTMLDivElement>('viewerRef')
+const { pdf } = usePDF('/sample.pdf')
 
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `src` | `string \| ArrayBuffer \| Blob` | — | PDF 文件来源 |
-| `showDownload` | `boolean` | `true` | 显示下载按钮 |
-| `showPrint` | `boolean` | `true` | 显示打印按钮 |
+let pendingDest: any[] | null = null
 
-| 事件 | 回调参数 | 说明 |
-| --- | --- | --- |
-| `rendered` | `{ totalPages }` | 文档加载完成 |
-| `error` | `Error` | 加载错误 |
-
----
-
-## @vue3-office/vue-docx
-
-Word 文档（.docx）在线预览组件，基于 `docx-preview`。
-
-### 基本用法
-
-```vue
-<script setup>
-import VueDocx from '@vue3-office/vue-docx'
-
-const docxUrl = 'https://example.com/sample.docx'
-</script>
-
-<template>
-  <VueDocx :url="docxUrl" @rendered="onRendered" @error="onError" />
-</template>
-```
-
-### 使用 ArrayBuffer / Blob
-
-```vue
-<script setup>
-import VueDocx from '@vue3-office/vue-docx'
-
-// 通过 fetch 获取二进制数据
-const response = await fetch('/sample.docx')
-const blob = await response.blob()
-</script>
-
-<template>
-  <VueDocx :url="blob" />
-</template>
-```
-
-### Props
-
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `url` | `string \| ArrayBuffer \| Blob` | — | 文档来源（URL 或二进制数据） |
-| `requestOptions` | `RequestOptions` | `{ responseType: 'blob' }` | 请求配置（仅 URL 模式生效） |
-| `docxOptions` | `Partial<DocxOptions>` | `{ ignoreLastRenderedPageBreak: false }` | docx-preview 渲染选项 |
-
-### 事件
-
-| 事件 | 回调参数 | 说明 |
-| --- | --- | --- |
-| `rendered` | — | 文档渲染完成 |
-| `error` | `Error` | 渲染错误 |
-
-### 暴露方法（ref 调用）
-
-```vue
-<script setup>
-const docxRef = ref()
-
-function download() {
-  docxRef.value.downloadFile('文档.docx')
-}
-</script>
-
-<template>
-  <VueDocx ref="docxRef" :url="url" />
-</template>
-```
-
-| 方法 | 说明 |
-| --- | --- |
-| `downloadFile(fileName)` | 下载原始 docx 文件 |
-| `docxRef` | 渲染容器 DOM 引用 |
-
----
-
-## @vue3-office/vue-excel
-
-Excel 表格（.xlsx / .xls）在线预览组件，基于 `exceljs` + `x-data-spreadsheet`。
-
-### 基本用法
-
-```vue
-<script setup>
-import VueExcel from '@vue3-office/vue-excel'
-import '@vue3-office/vue-excel/style.css'
-</script>
-
-<template>
-  <VueExcel
-    url="https://example.com/sample.xlsx"
-    @rendered="onRendered"
-    @error="onError"
-  />
-</template>
-```
-
-### Props
-
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `url` | `string \| ArrayBuffer \| Blob` | — | 文件来源 |
-| `xls` | `boolean` | `false` | 是否为 .xls 格式 |
-| `widthOffset` | `number` | `0` | 列宽额外偏移量（px） |
-| `heightOffset` | `number` | `0` | 行高额外偏移量（px） |
-| `requestOptions` | `RequestOptions` | `{ responseType: 'arraybuffer' }` | 请求配置 |
-| `excelOptions` | `Partial<ExcelOptions>` | `{}` | x-data-spreadsheet 配置 |
-| `beforeTransform` | `(workbook) => any` | — | 数据转换前回调 |
-| `afterTransform` | `(workbook) => any` | — | 数据转换后回调 |
-
-**ExcelOptions 配置：**
-
-| 属性 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `showGrid` | `boolean` | `true` | 显示网格线 |
-| `showBottomBar` | `boolean` | `true` | 显示底部 Sheet 切换栏 |
-| `view.height` | `() => number` | 自适应容器 | 视图高度 |
-| `view.width` | `() => number` | 自适应容器 | 视图宽度 |
-| `row.len` | `number` | `100` | 默认行数 |
-| `row.height` | `number` | `24` | 默认行高 |
-| `col.len` | `number` | `26` | 默认列数 |
-| `col.width` | `number` | `80` | 默认列宽 |
-
-### 事件
-
-| 事件 | 回调参数 | 说明 |
-| --- | --- | --- |
-| `rendered` | — | 渲染完成 |
-| `error` | `Error` | 渲染错误 |
-| `switchSheet` | `index: number` | 切换 Sheet 页签 |
-| `cellSelected` | `{ cell, rowIndex, columnIndex }` | 单元格选中 |
-| `cellsSelected` | `{ cell, startRowIndex, startColumnIndex, endRowIndex, endColumnIndex }` | 多单元格选中 |
-
-### 暴露方法（ref 调用）
-
-| 方法 | 说明 |
-| --- | --- |
-| `downloadFile(fileName)` | 下载原始 Excel 文件 |
-| `reRender()` | 重新渲染表格 |
-| `wrapperRef` | 外层容器 DOM 引用 |
-| `rootRef` | 表格容器 DOM 引用 |
-
----
-
-## @vue3-office/vue-video
-
-视频播放器组件，基于 `xgplayer`，支持画中画、迷你模式、HLS 等。
-
-### 基本用法
-
-```vue
-<script setup>
-import VueVideo from '@vue3-office/vue-video'
-import '@vue3-office/vue-video/style.css'
-</script>
-
-<template>
-  <VueVideo url="https://example.com/video.mp4" />
-</template>
-```
-
-### 自定义播放器配置
-
-```vue
-<template>
-  <VueVideo
-    url="https://example.com/video.mp4"
-    :player-options="{
-      width: 800,
-      height: 450,
-      autoplay: false,
-      poster: 'https://example.com/poster.jpg',
-      volume: 0.6,
-    }"
-  />
-</template>
-```
-
-### 使用二进制数据
-
-```vue
-<script setup>
-// 支持 ArrayBuffer / Blob
-const response = await fetch('/video.mp4')
-const blob = await response.blob()
-</script>
-
-<template>
-  <VueVideo :url="blob" />
-</template>
-```
-
-### 监听播放器事件
-
-```vue
-<script setup>
-import { Events } from '@vue3-office/vue-video'
-
-const events = {
-  [Events.PLAY]: () => console.log('播放'),
-  [Events.PAUSE]: () => console.log('暂停'),
-  [Events.ENDED]: () => console.log('播放结束'),
-  [Events.ERROR]: (err) => console.error('错误', err),
-}
-</script>
-
-<template>
-  <VueVideo url="/video.mp4" :events="events" />
-</template>
-```
-
-### Props
-
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `url` | `string \| ArrayBuffer \| Blob` | — | 视频来源 |
-| `playerOptions` | `Partial<IPlayerOptions>` | 见下方 | xgplayer 播放器配置（不含 `url`、`id`、`el`） |
-| `events` | `VideoEventHandlers` | — | 事件处理器对象，key 为 xgplayer 事件名 |
-
-**默认播放器配置：**
-
-```ts
-{
-  lang: 'zh-cn',
-  pip: true,           // 画中画
-  mini: {              // 迷你模式
-    isScrollSwitch: true,
-    scrollTop: 10,
-    isShowIcon: true,
+function onAnnotation(e: { type: string; data: any }) {
+  if (e.type === 'internal-link' && e.data.referencedPage) {
+    pendingDest = e.data.destArray ?? null
+    page.value = e.data.referencedPage
+  } else if (e.type === 'link' && e.data.url) {
+    window.open(e.data.url, '_blank')
   }
 }
-```
 
-### 事件
-
-| 事件 | 回调参数 | 说明 |
-| --- | --- | --- |
-| `rendered` | — | 播放器初始化完成 |
-| `error` | `Error` | 初始化错误 |
-
-> 更多播放器事件通过 `events` prop 传入，支持 xgplayer 所有事件。
-
-### 暴露方法（ref 调用）
-
-| 方法 | 说明 |
-| --- | --- |
-| `getPlayer()` | 获取 xgplayer 实例，可调用所有原生方法 |
-
-```vue
-<script setup>
-const videoRef = ref()
-
-function seekTo(time) {
-  const player = videoRef.value.getPlayer()
-  player.currentTime = time
+function onLoaded(viewport: any) {
+  if (!pendingDest || !viewerRef.value) return
+  const pageHeight = viewport.viewBox?.[3] ?? viewport.height / viewport.scale
+  const offsetY = getDestCssOffsetY(pendingDest, pageHeight, viewport.scale)
+  viewerRef.value.scrollTo({ top: offsetY, behavior: 'auto' })
+  pendingDest = null
 }
 </script>
 
 <template>
-  <VueVideo ref="videoRef" url="/video.mp4" />
+  <div ref="viewerRef" style="overflow: auto; height: 80vh">
+    <VuePdf
+      :pdf="pdf"
+      :page="page"
+      fit-parent
+      text-layer
+      annotation-layer
+      @loaded="onLoaded"
+      @annotation="onAnnotation"
+    />
+  </div>
 </template>
+```
+
+### VuePdf Slots
+
+| Slot | Scope 参数 | 用途 |
+| --- | --- | --- |
+| `default` | — | 渲染中的占位内容，会绝对定位覆盖在页面上，渲染完成后自动隐藏 |
+| `overlay` | `{ width, height }` | 渲染完成后的覆盖层，常用于自定义批注、坐标定位、热区等 |
+
+```vue
+<VuePdf :pdf="pdf" :page="page">
+  <div class="loading">PDF 加载中...</div>
+  <template #overlay="{ width, height }">
+    <div :style="{ position: 'absolute', top: 0, left: 0, width: `${width}px`, height: `${height}px` }">
+      <!-- 自定义图层 -->
+    </div>
+  </template>
+</VuePdf>
+```
+
+### VuePdf 通过 ref 调用的方法
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+const pdfRef = ref()
+
+// 重新渲染当前页（参数变化时通常会自动重渲，这里用于手动刷新）
+pdfRef.value?.reload()
+
+// 取消进行中的渲染（多次切页时会自动取消上一个）
+pdfRef.value?.cancel()
+
+// 销毁底层 PDFDocumentLoadingTask
+pdfRef.value?.destroy()
+
+// 在 autoRender = false 模式下，手动触发渲染（配合自定义渲染队列）
+await pdfRef.value?.draw()
+
+// 直接清空当前页 canvas（释放显存）
+pdfRef.value?.clearCanvas()
+
+// 渲染状态：0 初始 / 1 渲染中 / 2 暂停 / 3 完成
+console.log(pdfRef.value?.renderingState)
+</script>
+```
+
+### usePDF 组合式函数
+
+```ts
+const {
+  pdf,
+  pages,
+  info,
+  download,
+  print,
+  printFast,
+  cancelPrint,
+  getPDFDestination,
+} = usePDF(src, options?)
+```
+
+#### 入参 src
+
+`src` 支持响应式：传 `Ref` 时，值变化会自动销毁旧文档并重新加载。
+
+| 类型 | 示例 |
+| --- | --- |
+| URL 字符串 | `'/sample.pdf'` |
+| URL 对象 | `new URL('./a.pdf', import.meta.url)` |
+| 二进制数据 | `Uint8Array` / `ArrayBuffer` |
+| 配置对象 | `{ url: '/a.pdf', enableXfa: true, withCredentials: true }`（PDF.js 的 `DocumentInitParameters`） |
+| 响应式 | `Ref<以上任意类型>` |
+
+如果你拿到的是 `string | ArrayBuffer | Blob`，可以配合 `useObjectUrl` 转成 URL：
+
+```ts
+import { useObjectUrl } from '@vue3-office/vue-pdf'
+
+const { createUrl } = useObjectUrl()
+const pdfSrc = computed(() => createUrl(props.src))
+const { pdf, pages } = usePDF(pdfSrc)
+```
+
+#### options
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `password` | `string` | 静态密码 |
+| `onPassword` | `(updatePassword, reason) => void` | 动态密码回调；设置后会忽略 `password` |
+| `onProgress` | `(progressData) => void` | 加载进度，用于实现进度条 |
+| `onError` | `(error) => void` | 加载失败回调 |
+
+#### 返回值
+
+| 名称 | 类型 | 说明 |
+| --- | --- | --- |
+| `pdf` | `Ref<PDFDocumentLoadingTask \| undefined>` | 传给 `<VuePdf :pdf="pdf" />` |
+| `pages` | `Ref<number>` | 总页数 |
+| `info` | `Ref<Partial<PDFInfo>>` | `{ metadata, attachments, javascript, outline }` |
+| `download(filename?)` | `Promise<void>` | 下载当前文档（保留表单填写内容） |
+| `print(dpi?, filename?, onProgress?)` | `Promise<void>` | 高质量打印，逐页串行渲染，单 canvas 复用，内存友好 |
+| `printFast(dpi?, filename?, onProgress?)` | `Promise<{ cancelled }>` | 快速打印，4 页一批并行，可被 `cancelPrint` 中断 |
+| `cancelPrint()` | `void` | 中断 `printFast` |
+| `getPDFDestination(dest)` | `Promise<PDFDestination \| null>` | 解析命名目标 / 数组目标，返回 `{ pageIndex, location }` |
+
+打印进度示例：
+
+```ts
+const { printFast, cancelPrint } = usePDF('/big.pdf')
+
+const result = await printFast(100, '导出.pdf', (current, total) => {
+  console.log(`渲染中 ${current}/${total}`)
+})
+if (result.cancelled) console.log('已取消')
 ```
 
 ---
 
-## @vue3-office/vue-audio
+## VuePdfToc 完整阅读器
 
-音频播放器组件，支持播放列表、歌词显示（LRC）、随机/循环播放、固定模式、浮动拖拽等。
+`VuePdfToc` 是一个 **开箱即用** 的完整 PDF 阅读器组件，内部已经基于 `VuePdf` + `usePDF` 实现：
 
-### 基本用法
+- 顶部工具栏：翻页、页码跳转、缩放、适应宽度 / 适应页面、下载、打印
+- 左侧边栏：缩略图 + 目录两个 Tab
+- 主区域：滚动加载、虚拟渲染、目录跳转精确定位
+- 打印进度对话框 + 取消按钮
+- 自动适配 PDF 内置 outline，没有 outline 时回退到从 Link 注释生成
+- `Ctrl/⌘ + B` 折叠 / 展开侧边栏
+
+### 快速开始
 
 ```vue
-<script setup>
-import VueAudio from '@vue3-office/vue-audio'
-import '@vue3-office/vue-audio/style.css'
+<script setup lang="ts">
+import { VuePdfToc } from '@vue3-office/vue-pdf'
+import '@vue3-office/vue-pdf/style.css'
 
-const music = {
-  src: 'https://example.com/song.mp3',
-  title: '歌曲名称',
-  artist: '歌手',
-  pic: 'https://example.com/cover.jpg',
+function onRendered(e: { totalPages: number }) {
+  console.log('PDF 加载完成，共', e.totalPages, '页')
+}
+function onError(err: Error) {
+  console.error(err)
 }
 </script>
 
 <template>
-  <VueAudio :music="music" />
+  <VuePdfToc
+    src="https://example.com/sample.pdf"
+    filename="技术手册.pdf"
+    @rendered="onRendered"
+    @error="onError"
+    style="height: 100vh"
+  />
 </template>
 ```
 
-### 播放列表 + 歌词
+> **必须给组件指定高度**（`height` / `flex: 1` 等）。组件内部使用 `flex: 1` + `min-height: 0` 自适应父容器高度。
+
+### 文件来源支持
+
+`src` 支持以下类型（来自 `@vue3-office/common` 的 `FileSrc`）：
+
+| 类型 | 示例 |
+| --- | --- |
+| `string` | `'https://x.com/a.pdf'` 或 `'/a.pdf'` |
+| `ArrayBuffer` | 来自 `fetch().then(r => r.arrayBuffer())` |
+| `Blob` | 文件上传或网络请求得到的 Blob |
+
+组件内部会调用 `useObjectUrl` 自动处理 Blob / ArrayBuffer 到 Object URL 的转换，并在卸载时自动释放，无需手动管理。
 
 ```vue
-<script setup>
-const music = { src: '/song1.mp3', title: '歌曲1', artist: '歌手A', pic: '/cover1.jpg', lrc: '/song1.lrc' }
-const playlist = [
-  music,
-  { src: '/song2.mp3', title: '歌曲2', artist: '歌手B', pic: '/cover2.jpg', lrc: '/song2.lrc' },
-  { src: '/song3.mp3', title: '歌曲3', artist: '歌手C', pic: '/cover3.jpg' },
-]
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { VuePdfToc } from '@vue3-office/vue-pdf'
+
+const buffer = ref<ArrayBuffer | null>(null)
+onMounted(async () => {
+  const res = await fetch('/api/file/123')
+  buffer.value = await res.arrayBuffer()
+})
 </script>
 
 <template>
-  <VueAudio :music="music" :list="playlist" show-lrc />
+  <VuePdfToc v-if="buffer" :src="buffer" style="height: 100vh" />
 </template>
 ```
 
-### 固定模式（Fixed）
+### 目录的两种来源
+
+组件内部会按以下优先级构建目录：
+
+1. **PDF 内置 outline**（`PDFDocumentProxy.getOutline()`）—— 大多数规范的 PDF 都自带
+2. **从 Link 注释推断** —— 没有 outline 时，扫描全文档 `Link` 类型注释，按位置 / 字号聚类生成树
+
+开启 `auto-enhance-outline` 后，会进一步扫描正文，把 outline 中缺失的子级编号补回去。例如 outline 里只有 `8.3`，但正文里有 `8.3.1`、`8.3.2`，会被自动挂上：
 
 ```vue
-<template>
-  <VueAudio :music="music" :list="playlist" fixed fixed-position="bottom-right" />
-</template>
+<VuePdfToc
+  src="/manual.pdf"
+  auto-enhance-outline
+  :outline-default-expand-level="2"
+  style="height: 100vh"
+/>
 ```
 
-### Props
+> 增强会带来一定的扫描开销（取决于文档规模），按需开启。
+
+### VuePdfToc Props 完整列表
 
 | Prop | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `music` | `Music` | — | **必填**，当前播放的音乐 |
-| `list` | `Music[]` | `[]` | 播放列表 |
-| `mini` | `boolean` | `false` | 迷你模式（仅显示封面） |
-| `showLrc` | `boolean` | `false` | 显示歌词 |
-| `mutex` | `boolean` | `true` | 互斥播放（同时只有一个播放器播放） |
-| `theme` | `string` | `'#41b883'` | 主题色（设为 `'pic'` 自动从封面提取） |
-| `listMaxHeight` | `number \| string` | `0` | 播放列表最大高度 |
-| `listFolded` | `boolean` | `false` | 初始折叠播放列表 |
-| `float` | `boolean` | `false` | 浮动模式（可拖拽） |
-| `autoplay` | `boolean` | `false` | 自动播放 |
-| `controls` | `boolean` | `false` | 显示原生 audio 控件 |
-| `muted` | `boolean` | `false` | 静音 |
-| `preload` | `string` | `''` | 预加载模式（`'none'` / `'metadata'` / `'auto'`） |
-| `volume` | `number` | `0.8` | 音量（0-1） |
-| `shuffle` | `boolean` | `false` | 随机播放 |
-| `repeat` | `string` | `'repeat-all'` | 循环模式（`'no-repeat'` / `'repeat-one'` / `'repeat-all'`） |
-| `fixed` | `boolean` | `false` | 固定模式（固定在页面边缘） |
-| `fixedPosition` | `FixedPosition` | `'bottom-left'` | 固定位置（`'bottom-left'` / `'bottom-right'` / `'top-left'` / `'top-right'`） |
-| `fixedClose` | `boolean` | `true` | 固定模式下显示关闭按钮 |
+| `src` | `string \| ArrayBuffer \| Blob` | — | **必填**，PDF 文件来源 |
+| `filename` | `string` | `''` | 显示在标题栏 / 下载时使用的文件名；为空时使用 `'document.pdf'` |
+| `showDownload` | `boolean` | `true` | 是否显示工具栏右侧的下载按钮 |
+| `showPrint` | `boolean` | `true` | 是否显示工具栏右侧的打印按钮 |
+| `autoEnhanceOutline` | `boolean` | `false` | 是否自动补全 outline 中缺失的下级编号子项 |
+| `outlineDefaultExpandLevel` | `number` | `1` | 目录默认展开到的层级（含），`1` 表示只展开第一级 |
 
-**Music 接口：**
-
-```ts
-interface Music {
-  src: string       // 音频 URL（必填）
-  title?: string    // 歌曲标题
-  artist?: string   // 歌手
-  pic?: string      // 封面图片 URL
-  lrc?: string      // 歌词（LRC 格式字符串或 .lrc 文件 URL）
-  theme?: string    // 单曲主题色
-}
-```
-
-### 事件
+### VuePdfToc Events
 
 | 事件 | 回调参数 | 说明 |
 | --- | --- | --- |
-| `play` | `Event` | 开始播放 |
-| `pause` | `Event` | 暂停 |
-| `ended` | `Event` | 播放结束 |
-| `error` | `Event` | 播放错误 |
-| `timeUpdate` | `Event` | 播放进度更新 |
-| `volumeChange` | `Event` | 音量变化 |
-| `canPlay` | `Event` | 可以播放 |
-| `canPlayThrough` | `Event` | 可以完整播放 |
-| `durationChange` | `Event` | 时长变化 |
-| `loadedData` | `Event` | 数据加载完成 |
-| `loadedMetadata` | `Event` | 元数据加载完成 |
-| `loadStart` | `Event` | 开始加载 |
-| `playing` | `Event` | 正在播放 |
-| `progress` | `Event` | 加载进度 |
-| `seeked` | `Event` | 跳转完成 |
-| `seeking` | `Event` | 正在跳转 |
-| `waiting` | `Event` | 等待数据 |
-| `close` | — | 固定模式下关闭播放器 |
+| `rendered` | `{ totalPages: number }` | 文档加载完成 |
+| `error` | `Error` | 加载失败 |
 
-**支持 v-model：**
+> 如果你需要更细粒度的事件（注释跳转、文本高亮、单页 loaded 等），请改用底层 `VuePdf` + `usePDF` 自行组装。`VuePdfToc` 的设计目标是「直接能用」。
 
-| v-model | 类型 | 说明 |
-| --- | --- | --- |
-| `v-model:music` | `Music` | 当前播放曲目 |
-| `v-model:muted` | `boolean` | 静音状态 |
-| `v-model:volume` | `number` | 音量 |
-| `v-model:shuffle` | `boolean` | 随机播放状态 |
-| `v-model:repeat` | `string` | 循环模式 |
+### 键盘快捷键
 
-### 暴露方法（ref 调用）
-
-| 方法 | 说明 |
+| 快捷键 | 行为 |
 | --- | --- |
-| `play()` | 播放 |
-| `pause()` | 暂停 |
-| `toggle()` | 切换播放/暂停 |
-
-```vue
-<script setup>
-const audioRef = ref()
-
-function playMusic() {
-  audioRef.value.play()
-}
-</script>
-
-<template>
-  <VueAudio ref="audioRef" :music="music" />
-</template>
-```
+| `Ctrl + B` / `⌘ + B` | 折叠 / 展开左侧边栏 |
+| 页码输入框回车 | 跳转到指定页 |
 
 ---
 
-## @vue3-office/common
-
-公共工具库，被其他包内部依赖，也可以单独使用。
-
-### 导出内容
-
-```ts
-import {
-  // 类型
-  type FileSrc,          // string | ArrayBuffer | Blob
-  type MimeType,         // 常用 MIME 类型枚举
-  type RequestOptions,   // fetch 请求配置扩展
-
-  // 请求
-  request,               // 封装的 fetch 请求函数
-
-  // 工具函数
-  useObjectUrl,          // 创建/管理 Object URL（组件卸载自动清理）
-  download,              // 下载文件
-  deepMerge,             // 深度合并对象
-  isHttpUrl,             // 判断是否为 HTTP URL
-} from '@vue3-office/common'
-```
-
-### `request` 请求函数
-
-```ts
-const result = await request<ArrayBuffer>(url, { responseType: 'arraybuffer' })
-if (result.ok) {
-  console.log(result.data)
-} else {
-  console.error(result.error.message)
-}
-```
-
-### `useObjectUrl` 组合式函数
-
-```ts
-const { createUrl, revokeUrl, revokeUrlAll } = useObjectUrl()
-
-// 从 Blob/ArrayBuffer 创建 URL
-const url = createUrl(blob, 'video/mp4')
-
-// 手动释放
-revokeUrl(url)
-
-// 组件卸载时自动释放所有 URL
-```
-
-### `download` 下载文件
-
-```ts
-import { download, MimeType } from '@vue3-office/common'
-
-download('文件名.pdf', blobData, MimeType.PDF)
-```
-
-### MimeType 枚举
-
-| 值 | MIME 类型 |
-| --- | --- |
-| `MimeType.PDF` | `application/pdf` |
-| `MimeType.DOCX` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
-| `MimeType.XLSX` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
-| `MimeType.PPTX` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
-| `MimeType.PNG` | `image/png` |
-| `MimeType.JPG` | `image/jpeg` |
-| `MimeType.ZIP` | `application/zip` |
-| `MimeType.MP4` | `video/mp4` |
-
----
-
-## 全局注册（可选）
-
-每个组件包都导出了 Vue 插件，可以全局注册：
+## 全局注册
 
 ```ts
 import { createApp } from 'vue'
-import { VuePDFPlugin } from '@vue3-office/vue-pdf'
-import VueDocx from '@vue3-office/vue-docx'
-import VueExcel from '@vue3-office/vue-excel'
-import VueVideo from '@vue3-office/vue-video'
-import VueAudio from '@vue3-office/vue-audio'
+import { VuePDFPlugin, VuePdfToc } from '@vue3-office/vue-pdf'
+import '@vue3-office/vue-pdf/style.css'
+import App from './App.vue'
 
 const app = createApp(App)
 
-// 全局注册后可直接在模板中使用 <VuePdf />、<VueDocx /> 等
-app.use(VuePDFPlugin)
-app.component('VueDocx', VueDocx)
-app.component('VueExcel', VueExcel)
-app.component('VueVideo', VueVideo)
-app.component('VueAudio', VueAudio)
+app.use(VuePDFPlugin)            // 注册 <VuePdf />
+app.component('VuePdfToc', VuePdfToc) // 完整阅读器需要单独注册
+app.mount('#app')
 ```
 
 ---
 
-## SSR 注意事项
+## SSR / Nuxt 注意事项
 
-所有组件均为客户端组件。在 Nuxt 等 SSR 框架中，需要使用 `<ClientOnly>` 包裹：
+`VuePdf` 与 `VuePdfToc` 都依赖 `pdfjs-dist`，需要浏览器环境（Web Worker、`URL.createObjectURL` 等）。在 Nuxt / 其他 SSR 框架中请用 `<ClientOnly>` 包裹：
 
 ```vue
 <ClientOnly>
-  <VuePdf :pdf="pdf" />
+  <VuePdfToc :src="src" style="height: 100vh" />
 </ClientOnly>
 ```
 
+---
+
+## 常见问题
+
+**1. 翻页 / 缩放时为什么不会闪白？**
+内部使用了离屏 canvas，新页面渲染完成后才一次性替换 DOM，旧 canvas 立即释放显存。
+
+**2. 多个 `VuePdf` 共用同一个 `pdf`，卸载会出问题吗？**
+不会。`autoDestroy` 默认为 `false`，文档生命周期由 `usePDF` 统一管理。如果你只在一个组件里用 PDF 且希望它卸载时释放资源，可以单独打开 `auto-destroy`。
+
+**3. `printFast` 打印效果模糊？**
+`printFast` 默认 100 DPI，追求速度。需要更清晰的输出请用 `print(150)` 或 `print(200)`，逐页串行渲染、画质更好。
+
+**4. 目录跳转不准（总是滚到页顶）？**
+确保你监听了 `annotation` 中的 `internal-link`，并在 `loaded` 事件里使用 `getDestCssOffsetY` 计算目标偏移。`VuePdfToc` 已经内置该逻辑。
+
+**5. `info.outline` 是空的怎么办？**
+PDF 文件本身没有 outline。可以用 `VuePdfToc` 的 `auto-enhance-outline`，或在自己的实现里调用 `generateOutlineFromAnnotations` 回退方案。
+
+---
+
 ## License
 
-[MIT](./LICENSE)
+[MIT](../../LICENSE)
