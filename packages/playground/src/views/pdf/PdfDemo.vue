@@ -4,7 +4,7 @@ import useLoading from '../hooks/useLoading.js';
 import { watch } from 'vue';
 import type { PreviewSlotProps } from "../../types/preview";
 import PdfDemoViewer from './PdfDemoViewer.vue';
-import pdfFile from '@samples/issue133.pdf';
+import pdfFile from '@samples/test.pdf';
 
 const defaultUrl = pdfFile;
 
