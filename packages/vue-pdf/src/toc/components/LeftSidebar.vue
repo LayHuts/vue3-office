@@ -29,7 +29,11 @@
       </div>
 
       <div v-show="activeTab === 'thumbnails'" class="thumbnails-view vue-pdf-scrollbar" ref="thumbnailContainerRef">
-        <PDFThumbnailViewer :pdf="pdf" :pdf-document="pdfDocument" :current-page="currentPage" :total-pages="totalPages" :event-bus="eventBus" :link-service="linkService" :rendering-queue="renderingQueue" :is-visible="activeTab === 'thumbnails'" />
+        <!-- key 绑 pdfDocument：切换 PDF 时整体重建缩略图视图。
+             不重建会导致旧 PDFThumbnailView 实例残留 + 旧 canvas 不释放，
+             并且当新旧 PDF 页数相同时 watch(totalPages) 不触发，缩略图停留在旧 PDF。
+             对齐 pdf.js close() 中 pdfThumbnailViewer.setDocument(null)。 -->
+        <PDFThumbnailViewer :key="pdfDocument" :pdf="pdf" :pdf-document="pdfDocument" :current-page="currentPage" :total-pages="totalPages" :event-bus="eventBus" :link-service="linkService" :rendering-queue="renderingQueue" :is-visible="activeTab === 'thumbnails'" />
       </div>
     </div>
   </div>

@@ -211,6 +211,42 @@ const outlineTree = computed(() => {
 // 切换 PDF 时用于使旧的 outline 加载流程过期
 let outlineGen = 0
 
+/**
+ * pdf.js close() 等价动作：在新文档 promise 解析前就执行，
+ * 让 UI 立刻进入"无文档"状态，避免旧文档的 page/outline/thumbnail 残留。
+ *
+ * pdf.js 对应实现（web/app.js close()）：
+ *   pdfThumbnailViewer.setDocument(null)
+ *   pdfViewer.setDocument(null)
+ *   pdfLinkService.setDocument(null)
+ *   viewsManager.reset() / pdfOutlineViewer.reset() / ...
+ */
+function closeDocument() {
+  outlineGen++
+  pdfDocument.value = null
+  totalPages.value = 0
+  currentPage.value = 1
+  loading.value = true
+  loadError.value = null
+  builtinOutline.value = []
+  generatedOutline.value = []
+  isGeneratingOutline.value = false
+  // 解绑 linkService 上的旧 doc 引用，防止用户在切换瞬间点击旧 outline 链接
+  // 拿到旧 doc 解析 dest（pdf.js 中是 pdfLinkService.setDocument(null)）
+  try { linkService.setDocument(null as any) } catch { /* ignore */ }
+  // 重置渲染队列：清空 idleTimeout / highestPriorityPage
+  renderingQueue.reset()
+  renderingQueue.isThumbnailViewEnabled = activeTab.value === 'thumbnails' && !sidebarCollapsed.value
+}
+
+// 监听 loadingTask 变化：进入"关闭旧文档"阶段（在新 doc resolve 前执行）。
+// 与下面 watch([pdf, pages]) 配合，等价 pdf.js 的 open() 序列：先 close 再 open。
+watch(pdf, (newTask, oldTask) => {
+  if (newTask !== oldTask) {
+    closeDocument()
+  }
+})
+
 // 监听 PDF 加载
 watch([pdf, pages], ([pdfValue, pagesValue]) => {
   if (pdfValue?.promise && pagesValue) {
@@ -218,12 +254,8 @@ watch([pdf, pages], ([pdfValue, pagesValue]) => {
       // 同一份 doc 不重复初始化（避免在已加载完的 PDF 上重复 setDocument 触发抖动）
       if (pdfDocument.value === doc) return
 
-      const myGen = ++outlineGen
-
-      // 切换 PDF：先清掉旧目录、currentPage，避免新 PDF 渲染前 UI 上还显示旧目录
-      builtinOutline.value = []
-      generatedOutline.value = []
-      currentPage.value = 1
+      // closeDocument() 已经把 outlineGen++ 了，这里直接捕获当前值即可
+      const myGen = outlineGen
 
       pdfDocument.value = doc
       totalPages.value = pagesValue

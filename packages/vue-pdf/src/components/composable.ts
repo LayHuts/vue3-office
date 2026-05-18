@@ -51,14 +51,35 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
   // const info = shallowRef<PDFInfo | {}>({})
   const info = shallowRef<Partial<PDFInfo>>({})
 
-  function processLoadingTask(source: NonNullable<PDFSrc>) {
-    if (pdf.value){
-      void pdf.value.destroy();
-    }
-    if (pdfDoc.value){
-      void pdfDoc.value.destroy();
-    }
+  /**
+   * 加载代次。每次 processLoadingTask 都会 ++，
+   * 旧 loadingTask.promise.then() 内部用 myGen !== loadGeneration 判断是否过期，
+   * 避免旧文档晚到的回调写脏新文档的状态（对齐 pdf.js close()/open() 中
+   * `if (pdfDocument !== this.pdfDocument) return;` 的代次校验）。
+   */
+  let loadGeneration = 0
 
+  function processLoadingTask(source: NonNullable<PDFSrc>) {
+    const myGen = ++loadGeneration
+
+    // === pdf.js close() 流程 ===
+    // 1. 取消可能正在跑的打印
+    cancelPrint()
+
+    // 2. 先清空对外暴露的状态（让消费方 watch 先看到"无文档"中间态，
+    //    等价 pdfViewer.setDocument(null) / pdfLinkService.setDocument(null) 的连锁清理）
+    const oldTask = pdf.value
+    const oldDoc = pdfDoc.value
+    pdf.value = undefined
+    pdfDoc.value = undefined
+    pages.value = 0
+    info.value = {}
+
+    // 3. 销毁旧的 worker 资源（loadingTask.destroy() 会同时把 PDFDocument 释放）
+    if (oldTask) void oldTask.destroy()
+    if (oldDoc) void oldDoc.destroy()
+
+    // === pdf.js open() 流程 ===
     const loadingTask = PDFJS.getDocument(source)
 
     // 立即设置 pdf.value，避免后续重复触发 watch
@@ -79,14 +100,23 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
 
     loadingTask.promise.then(
       async (doc) => {
+        // 代次校验：在 promise 解析期间又来了新的 src，丢弃这个 doc
+        if (myGen !== loadGeneration) {
+          try { void doc.destroy() } catch { /* ignore */ }
+          return
+        }
         pdfDoc.value = doc
         // pdf.value 已经在上面设置过了，不需要再设置
         pages.value = doc.numPages
 
         const metadata = await doc.getMetadata()
+        if (myGen !== loadGeneration) return
         const attachments = (await doc.getAttachments()) as Record<string, unknown>
+        if (myGen !== loadGeneration) return
         const javascript = await doc.getJSActions()
+        if (myGen !== loadGeneration) return
         const outline = await doc.getOutline()
+        if (myGen !== loadGeneration) return
 
         info.value = {
           metadata,
@@ -96,6 +126,8 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
         }
       },
       (error) => {
+        // 过期错误忽略（已被新加载替换）
+        if (myGen !== loadGeneration) return
         // PDF loading error
         if (typeof options.onError === 'function')
           options.onError(error)

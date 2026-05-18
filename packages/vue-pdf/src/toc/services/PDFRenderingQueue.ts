@@ -47,6 +47,21 @@ export class PDFRenderingQueue {
     return !!this.pdfViewer
   }
 
+  /**
+   * 切换 PDF 时重置队列状态。
+   * 对齐 pdf.js close() 内的清理：丢弃排队优先级、取消 idle 回调，
+   * 避免新文档接进来后 idleTimeout 还在执行旧的清理回调。
+   */
+  reset(): void {
+    if (this.idleTimeout !== null) {
+      clearTimeout(this.idleTimeout)
+      this.idleTimeout = null
+    }
+    this.highestPriorityPage = null
+    this.printing = false
+    this.onIdle = null
+  }
+
   isHighestPriority(view: IRenderableView): boolean {
     return this.highestPriorityPage === view.renderingId
   }
