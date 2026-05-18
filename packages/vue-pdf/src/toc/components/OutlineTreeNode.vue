@@ -1,9 +1,14 @@
 <template>
   <div class="tree-node">
-    <div class="treeItem" :class="{ selected: item === currentTreeItem, withNesting: hasChildren }" :style="{ paddingLeft: `${level * 20 + 8}px` }">
+    <div
+      class="treeItem"
+      :class="{ selected: item === currentTreeItem, withNesting: hasChildren }"
+      :style="{ paddingLeft: `${level * 20 + 8}px` }"
+      @click="handleClick"
+    >
       <div v-if="hasChildren" class="treeItemToggler" :class="{ treeItemsHidden: !expanded }" @click.stop="toggleExpand"></div>
       <div v-else class="treeItemToggler-placeholder"></div>
-      <a :href="destinationHash" class="outline-link" :style="linkStyle" @click.prevent="handleClick">
+      <a :href="destinationHash" class="outline-link" :style="linkStyle" @click.prevent>
         {{ normalizeTextContent(item.title) }}
       </a>
     </div>
