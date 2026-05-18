@@ -39,6 +39,7 @@
     "build:all": "pnpm build:common && pnpm build:pdf && pnpm build:docx && pnpm build:excel && pnpm build:video && pnpm build:audio",
     "publish:common": "pnpm --filter @vue3-office/common publish --access public --no-git-checks",
     "publish:pdf": "pnpm --filter @vue3-office/vue-pdf publish --access public --no-git-checks",
+    "publish:pdf:alpha": "pnpm --filter @vue3-office/vue-pdf publish --access public --no-git-checks --tag alpha",
     "publish:docx": "pnpm --filter @vue3-office/vue-docx publish --access public --no-git-checks",
     "publish:excel": "pnpm --filter @vue3-office/vue-excel publish --access public --no-git-checks",
     "publish:video": "pnpm --filter @vue3-office/vue-video publish --access public --no-git-checks",
