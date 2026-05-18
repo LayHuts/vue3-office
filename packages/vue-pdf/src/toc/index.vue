@@ -54,7 +54,11 @@
       />
 
       <!-- 右侧PDF内容区域 -->
+      <!-- key 绑 pdfDocument：切换 PDF 时整体重建主视图。
+           不重建会导致旧 PDFPageView 实例残留在 worker 排队中，新 doc 接进来后
+           getPage 拿到不存在的页码（"Invalid page request"）。 -->
       <Content
+        :key="pdfDocument"
         ref="contentRef"
         :pdf="pdf"
         :pdf-document="pdfDocument"
@@ -186,7 +190,7 @@ const isGeneratingOutline = ref(false)
 const builtinOutline = ref<OutlineItem[]>([])
 
 // 使用 usePDF 加载 PDF
-const { pdf, pages, info, download, printFast, cancelPrint } = usePDF(
+const { pdf, pages, download, printFast, cancelPrint } = usePDF(
   pdfSrc,
   {
     onError: (error: any) => {
@@ -204,14 +208,23 @@ const outlineTree = computed(() => {
   return generatedOutline.value
 })
 
+// 切换 PDF 时用于使旧的 outline 加载流程过期
+let outlineGen = 0
+
 // 监听 PDF 加载
 watch([pdf, pages], ([pdfValue, pagesValue]) => {
   if (pdfValue?.promise && pagesValue) {
-    if (totalPages.value === pagesValue && pdfDocument.value) {
-      return
-    }
-
     pdfValue.promise.then(async (doc: any) => {
+      // 同一份 doc 不重复初始化（避免在已加载完的 PDF 上重复 setDocument 触发抖动）
+      if (pdfDocument.value === doc) return
+
+      const myGen = ++outlineGen
+
+      // 切换 PDF：先清掉旧目录、currentPage，避免新 PDF 渲染前 UI 上还显示旧目录
+      builtinOutline.value = []
+      generatedOutline.value = []
+      currentPage.value = 1
+
       pdfDocument.value = doc
       totalPages.value = pagesValue
       loading.value = false
@@ -222,25 +235,51 @@ watch([pdf, pages], ([pdfValue, pagesValue]) => {
       // 触发加载完成事件
       emit('rendered', { totalPages: pagesValue })
 
-      // 构建目录：内置 outline 优先，否则从 Link Annotations 生成
-      const hasBuiltin = info.value?.outline && info.value.outline.length > 0
+      // 构建目录：内置 outline 优先，否则从 Link Annotations 生成。
+      // 注意：不能复用 usePDF 暴露的 info.outline —— 它是在 metadata/attachments
+      // 加载完成之后才赋值，跟 pages 触发的本 watch 存在竞态，
+      // 在某些 PDF 上读到的还是 undefined，会错走 annotation 兜底路径，
+      // 导致目录被生成成"目录页文本 + dot leader + 页码"。
+      // 这里直接向 doc 请求 outline，时序可控。
       isGeneratingOutline.value = true
       try {
-        if (hasBuiltin) {
-          let tree = convertPdfOutline(info.value!.outline as any[])
+        let builtin: any[] | null = null
+        // pdf.js 偶尔会在 worker 解析 outline 时报 "Unterminated string" 之类
+        // 警告并返回 null/[]，但稍后再调用又能拿到完整结果。这里做一次轻量重试。
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            builtin = await doc.getOutline()
+          } catch (e) {
+            console.warn('[vue-pdf] getOutline threw, attempt', attempt, e)
+            builtin = null
+          }
+          if (myGen !== outlineGen) return
+          if (builtin && builtin.length > 0) break
+          if (attempt === 0) await new Promise(r => setTimeout(r, 50))
+          if (myGen !== outlineGen) return
+        }
+
+        if (builtin && builtin.length > 0) {
+          let tree = convertPdfOutline(builtin)
           if (props.autoEnhanceOutline) {
             tree = await enhanceOutline(doc, tree)
+            if (myGen !== outlineGen) return
           }
+          if (myGen !== outlineGen) return
           builtinOutline.value = tree
         } else {
           let tree = await generateOutlineFromAnnotations(doc)
+          if (myGen !== outlineGen) return
           if (props.autoEnhanceOutline && tree.length > 0) {
             tree = await enhanceOutline(doc, tree)
+            if (myGen !== outlineGen) return
           }
           generatedOutline.value = tree
         }
       } finally {
-        isGeneratingOutline.value = false
+        if (myGen === outlineGen) {
+          isGeneratingOutline.value = false
+        }
       }
     }).catch((error: any) => {
       console.error('PDF加载失败:', error)
