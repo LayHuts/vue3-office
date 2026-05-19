@@ -34,6 +34,7 @@
   - [Props 完整列表](#vuepdftoc-props-完整列表)
   - [Events](#vuepdftoc-events)
   - [键盘快捷键](#键盘快捷键)
+- [大文件 / 远程 PDF 加载优化](#大文件--远程-pdf-加载优化)
 - [全局注册](#全局注册)
 - [SSR / Nuxt 注意事项](#ssr--nuxt-注意事项)
 - [常见问题](#常见问题)
@@ -74,10 +75,16 @@ import {
   // 工具
   parseDestOffset,    // 解析目标位置数组
   getDestCssOffsetY,  // 计算目录跳转目标在 CSS 像素下的纵向偏移
-  useObjectUrl,       // 来自 @vue3-office/common，处理 string/Blob/ArrayBuffer 输入
+
+  // 来自 @vue3-office/common（重新导出）
+  useObjectUrl,       // 处理 string/Blob/ArrayBuffer 输入
+  download,           // 触发浏览器下载（依赖 MimeType 决定 Content-Type）
+  isHttpUrl,          // 判断字符串是否为 http(s) URL
 
   // 类型
   type FileSrc,
+  type MimeType,
+  type RequestOptions,
   type WatermarkOptions,
   type HighlightOptions,
   type AnnotationEventPayload,
@@ -86,6 +93,8 @@ import {
   type TextLayerLoadedEventPayload,
   type PDFInfo,
   type PDFDestination,
+  type PDFLoaderOptions,  // pdfjs.getDocument 透传参数（Range/Stream/cMap...）
+  type PDFOptions,        // usePDF 第二个参数的类型
 } from '@vue3-office/vue-pdf'
 ```
 
@@ -427,8 +436,9 @@ const { pdf, pages } = usePDF(pdfSrc)
 | --- | --- | --- |
 | `password` | `string` | 静态密码 |
 | `onPassword` | `(updatePassword, reason) => void` | 动态密码回调；设置后会忽略 `password` |
-| `onProgress` | `(progressData) => void` | 加载进度，用于实现进度条 |
+| `onProgress` | `(progressData) => void` | 加载进度回调，参数为 `{ loaded, total }` 字节数。**已内部去重**：相同 `loaded` 不会重复触发，避免 worker 数据流空响应造成的回调风暴 |
 | `onError` | `(error) => void` | 加载失败回调 |
+| `loaderOptions` | `PDFLoaderOptions` | pdfjs `getDocument` 的加载参数子集，详见 [大文件 / 远程 PDF 加载优化](#大文件--远程-pdf-加载优化) |
 
 #### 返回值
 
@@ -494,6 +504,10 @@ function onError(err: Error) {
 ```
 
 > **必须给组件指定高度**（`height` / `flex: 1` 等）。组件内部使用 `flex: 1` + `min-height: 0` 自适应父容器高度。
+>
+> 加载远程大文件时，loading 区会自动显示进度条与字节数文案；如果想把进度联动到外部 UI，监听 [`@progress` 事件](#vuepdftoc-events)。
+>
+> 默认即启用大文件优化（256KB Range + 关闭后台预取），无需手动配置。需要调整请见 [大文件 / 远程 PDF 加载优化](#大文件--远程-pdf-加载优化)。
 
 ### 文件来源支持
 
@@ -554,13 +568,17 @@ onMounted(async () => {
 | `showPrint` | `boolean` | `true` | 是否显示工具栏右侧的打印按钮 |
 | `autoEnhanceOutline` | `boolean` | `false` | 是否自动补全 outline 中缺失的下级编号子项 |
 | `outlineDefaultExpandLevel` | `number` | `1` | 目录默认展开到的层级（含），`1` 表示只展开第一级 |
+| `loaderOptions` | `PDFLoaderOptions` | 内置默认值 | 透传给 pdfjs `getDocument` 的加载参数。不传也会自动启用大文件优化默认值，详见 [大文件 / 远程 PDF 加载优化](#大文件--远程-pdf-加载优化) |
 
 ### VuePdfToc Events
 
 | 事件 | 回调参数 | 说明 |
 | --- | --- | --- |
-| `rendered` | `{ totalPages: number }` | 文档加载完成 |
+| `rendered` | `{ totalPages: number }` | 文档加载完成（pdf 解析完拿到 numPages，不等同于所有页都已渲染） |
+| `progress` | `{ loaded: number; total: number }` | 网络下载进度，`loaded`/`total` 均为字节数；仅当通过 URL 加载时才会触发；已做去重处理 |
 | `error` | `Error` | 加载失败 |
+
+> `VuePdfToc` 内部 loading 区已经显示了进度条与 `xx%  loadedMB / totalMB` 文案，业务侧通常不需要再用 `@progress` 自己渲染 UI；这个事件主要用于联动外部组件（如全局 loading bar、埋点）。
 
 > 如果你需要更细粒度的事件（注释跳转、文本高亮、单页 loaded 等），请改用底层 `VuePdf` + `usePDF` 自行组装。`VuePdfToc` 的设计目标是「直接能用」。
 
@@ -590,7 +608,144 @@ app.mount('#app')
 
 ---
 
-## SSR / Nuxt 注意事项
+## 大文件 / 远程 PDF 加载优化
+
+加载远程 PDF 时（尤其是 30M+ 大文件），pdfjs 默认会顺序拉取整个文件到内存才能开始解析。`@vue3-office/vue-pdf` 通过 `loaderOptions` 暴露了 pdfjs `getDocument` 的关键加载参数，并设置了一套**面向大文件的保守默认值**。
+
+### 默认值（无需手动配置即可生效）
+
+| 字段 | 默认值 | pdfjs 原生默认 | 含义 |
+| --- | --- | --- | --- |
+| `rangeChunkSize` | `262144`（256KB） | `65536`（64KB） | 每次 HTTP Range 请求拉取的字节数。256KB 比默认大 4 倍，减少 RTT 累积 |
+| `disableAutoFetch` | `true` | `false` | 关闭后台预取剩余页。首屏只下载渲染当前页所需字节，翻页才拉对应页 |
+
+### 字段定义（`PDFLoaderOptions`）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `rangeChunkSize` | `number` | Range 单次字节数 |
+| `disableRange` | `boolean` | 关闭 Range 请求；服务端不支持 Range 时使用 |
+| `disableStream` | `boolean` | 关闭 fetch ReadableStream 模式；调试用 |
+| `disableAutoFetch` | `boolean` | 关闭后台预取 |
+| `cMapUrl` | `string` | 中日韩 CMap 资源地址 |
+| `cMapPacked` | `boolean` | CMap 是否为压缩格式（pdfjs-dist 自带的是 `true`） |
+| `standardFontDataUrl` | `string` | 标准字体资源地址 |
+| `enableXfa` | `boolean` | 启用 XFA 表单 |
+| `httpHeaders` | `Record<string, string>` | 自定义请求头 |
+| `withCredentials` | `boolean` | 请求是否带 cookies |
+
+### 合并语义：业务方传入的字段会**覆盖**同名默认
+
+```ts
+// 默认行为：rangeChunkSize=256KB，disableAutoFetch=true
+usePDF('/big.pdf')
+
+// 自定义 chunk 大小，autoFetch 仍保持关闭
+usePDF('/big.pdf', {
+  loaderOptions: { rangeChunkSize: 512 * 1024 },
+})
+
+// 显式开启后台预取（小文件 / 弱网场景）
+usePDF('/small.pdf', {
+  loaderOptions: { disableAutoFetch: false },
+})
+
+// 完全关闭 Range，回到 pdfjs 一次性拉全文件
+usePDF('/file.pdf', {
+  loaderOptions: { disableRange: true, rangeChunkSize: 0 },
+})
+```
+
+`VuePdfToc` 同样支持：
+
+```vue
+<VuePdfToc
+  :src="pdfUrl"
+  :loader-options="{ rangeChunkSize: 512 * 1024 }"
+/>
+```
+
+### 服务端要求（Range 生效条件）
+
+要让 Range / Stream 真正生效，文件服务必须满足：
+
+1. 响应头包含 `Accept-Ranges: bytes`
+2. 响应头包含正确的 `Content-Length`
+3. **不要**对 PDF 启用 gzip / br 压缩（压缩会破坏字节偏移，pdfjs 检测到 `Content-Encoding` 会自动禁用 Range）
+4. CORS 场景下需要暴露相关响应头：
+
+```
+Access-Control-Expose-Headers: Accept-Ranges, Content-Length, Content-Encoding, Content-Range
+```
+
+5. 业务侧把 URL **字符串**直接传给组件，**不要**自己 `fetch().arrayBuffer()` 后再传 Buffer——一旦变成 `ArrayBuffer/Blob`，pdfjs 就拿不到 HTTP 流，所有 Range 配置都失效。
+
+### 中文 / 日文 / 韩文 PDF：配置 cMap
+
+CJK PDF 的字体编码通常是 CID（Adobe-GB1 / Adobe-CNS1 / Adobe-Japan1 等），需要 CMap 表把 CID 映射回 Unicode，否则**文字能渲染、但复制是乱码、textLayer 选不中、PDF 全文搜索失效**，控制台还会反复报 `Unable to load CMap` 警告拖慢首屏。
+
+最简单的做法是把 `pdfjs-dist/cmaps/` 目录的 100+ 个 `.bcmap` 文件拷到业务方 `public/` 下，然后在 `loaderOptions` 里指定路径：
+
+```ts
+loaderOptions: {
+  cMapUrl: '/pdfjs-cmaps/',  // 注意尾部斜杠
+  cMapPacked: true,
+}
+```
+
+> 也可以用 `vite-plugin-static-copy` 在 vite 配置里自动从 `node_modules/pdfjs-dist/cmaps` 拷贝。**不要**用 `import 'xxx.bcmap'` 让构建工具加 hash —— pdfjs 运行时是按原文件名拼接 URL 的，加 hash 会找不到文件。
+
+### 加载进度
+
+`usePDF` 的 `onProgress` 与 `VuePdfToc` 的 `@progress` 事件提供字节级进度反馈：
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { usePDF } from '@vue3-office/vue-pdf'
+
+const progress = ref<{ loaded: number; total: number } | null>(null)
+const { pdf } = usePDF('/big.pdf', {
+  onProgress: ({ loaded, total }) => { progress.value = { loaded, total } },
+})
+
+const percent = computed(() =>
+  progress.value && progress.value.total > 0
+    ? Math.floor(progress.value.loaded / progress.value.total * 100)
+    : 0
+)
+</script>
+```
+
+`VuePdfToc` 内部 loading 区已自动显示了进度条 + `xx%  loadedMB / totalMB` 文案。
+
+### 何时配置无效？
+
+下列场景 `loaderOptions` 里和网络相关的字段（`rangeChunkSize` / `disableRange` / `disableStream` / `disableAutoFetch`）**不会**生效，因为数据已经在内存中：
+
+- `src` 是 `ArrayBuffer` / `Blob` / `TypedArray`
+- `src` 是已经 `URL.createObjectURL` 出来的 `blob:` URL
+- `usePDF` 入参直接是 `DocumentInitParameters` 对象 + `data` 字段
+
+但 `cMapUrl` / `enableXfa` / `standardFontDataUrl` 等字段在所有场景都生效，会一并透传。
+
+### 不能再优化的极端场景
+
+如果文件本身**对象排布不规范**（例如 OCR 后保存、多次编辑、未线性化的 PDF），worker 必须读取大部分字节才能 resolve `numPages`。这种情况下 `loaderOptions` 调到极致也只能省 5-10% 时间。**唯一治本方案是让后端做线性化**（Linearization / Web Optimized）：
+
+```bash
+# 单文件
+qpdf --linearize input.pdf output.pdf
+
+# 批量
+find /path -name '*.pdf' -exec qpdf --linearize {} {}.tmp \; -exec mv {}.tmp {} \;
+```
+
+线性化后的 PDF 文件大小通常多 1-3%，但首页渲染只需要拿到前几个 chunk，体验差距明显。
+
+---
+
+
 
 `VuePdf` 与 `VuePdfToc` 都依赖 `pdfjs-dist`，需要浏览器环境（Web Worker、`URL.createObjectURL` 等）。在 Nuxt / 其他 SSR 框架中请用 `<ClientOnly>` 包裹：
 
@@ -618,6 +773,15 @@ app.mount('#app')
 
 **5. `info.outline` 是空的怎么办？**
 PDF 文件本身没有 outline。可以用 `VuePdfToc` 的 `auto-enhance-outline`，或在自己的实现里调用 `generateOutlineFromAnnotations` 回退方案。
+
+**6. 加载远程大 PDF（30M+）首屏很慢？**
+组件内置了 `rangeChunkSize: 256KB` + `disableAutoFetch: true` 的大文件优化默认值，但要真正生效需要业务方满足：① 直接传 URL 字符串，不要自己 `fetch().arrayBuffer()` 后再传；② 服务端返回 `Accept-Ranges: bytes` 且不压缩 PDF；③ CORS 场景暴露 `Content-Range / Content-Length`。详见 [大文件 / 远程 PDF 加载优化](#大文件--远程-pdf-加载优化)。如果配置都正确仍然慢，多半是 PDF 本身没线性化，可在后端用 `qpdf --linearize` 处理。
+
+**7. 中文 PDF 复制 / 选中是乱码？**
+没配 cMap。把 `pdfjs-dist/cmaps/` 拷到 `public/pdfjs-cmaps/`，然后传 `loader-options="{ cMapUrl: '/pdfjs-cmaps/', cMapPacked: true }"`。
+
+**8. 进度条事件 `progress` 一直在响？**
+进度回调已在 `usePDF` 内部去重——相同 `loaded` 不会重复触发。如果你看到大量重复日志，请确认引用的是当前版本的产物（不是旧的 dist）。
 
 ---
 
