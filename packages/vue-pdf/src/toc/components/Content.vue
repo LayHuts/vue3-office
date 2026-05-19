@@ -7,7 +7,11 @@
     >
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>正在加载PDF...</p>
+        <p>正在加载数据</p>
+        <p v-if="progressText" class="loading-progress">{{ progressText }}</p>
+        <div v-if="progressPercent !== null" class="loading-progress-bar">
+          <div class="loading-progress-fill" :style="{ width: progressPercent + '%' }" />
+        </div>
       </div>
 
       <div v-else class="pdf-content" ref="pdfContentRef"></div>
@@ -16,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { PDFPageView } from '../services/PDFPageView'
 import type { EventBus, PDFLinkService, PDFRenderingQueue } from '../services'
 import type { PDFLocation } from '../types'
@@ -43,7 +47,31 @@ const props = defineProps<{
   eventBus: EventBus
   linkService: PDFLinkService
   renderingQueue: PDFRenderingQueue
+  /** PDF 网络下载进度，可选。仅当通过 URL 加载时有值 */
+  loadProgress?: { loaded: number; total: number } | null
 }>()
+
+// loading 区下方的人类可读进度文案
+const progressText = computed(() => {
+  const p = props.loadProgress
+  if (!p) return ''
+  const fmt = (b: number): string => {
+    if (b < 1024) return `${b} B`
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
+    return `${(b / 1024 / 1024).toFixed(2)} MB`
+  }
+  if (p.total > 0) {
+    const pct = Math.min(100, Math.floor((p.loaded / p.total) * 100))
+    return `${pct}%  ${fmt(p.loaded)} / ${fmt(p.total)}`
+  }
+  return fmt(p.loaded)
+})
+
+const progressPercent = computed<number | null>(() => {
+  const p = props.loadProgress
+  if (!p || p.total <= 0) return null
+  return Math.min(100, Math.floor((p.loaded / p.total) * 100))
+})
 
 const emit = defineEmits<{
   'page-change': [page: number]
@@ -686,6 +714,9 @@ defineExpose({
 .pdf-container { flex: 1; overflow: auto; scroll-behavior: auto; overscroll-behavior: contain; scrollbar-gutter: stable; contain: strict; }
 .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--pdf-text-primary); }
 .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--pdf-primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+.loading-progress { margin-top: 4px; font-size: 12px; color: var(--pdf-text-secondary, rgba(255,255,255,0.65)); font-variant-numeric: tabular-nums; }
+.loading-progress-bar { margin-top: 10px; width: 220px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.loading-progress-fill { height: 100%; background: var(--pdf-primary-color); transition: width 0.15s ease-out; }
 .pdf-content {
   display: flex;
   flex-direction: column;

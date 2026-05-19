@@ -8,8 +8,22 @@ import pdfFile from '@samples/test.pdf';
 
 const defaultUrl = pdfFile;
 
+// 大文件优化：256KB 一片 + 关闭后台预取，仅在传 URL 时生效
+// 临时加 disableStream:true 验证 Stream 通道是否在拖慢首屏
+const loaderOptions = {
+  rangeChunkSize: 256 * 1024,
+  disableAutoFetch: true,
+  // disableStream: true,
+};
+
+function onProgress({ loaded, total }: { loaded: number; total: number }) {
+  // [DEBUG] 业务侧也能拿到进度，VuePdfToc 内部 loading 区已经显示了，
+  // 这里只打印日志便于排查
+  console.log('[PdfTocDemo] progress', loaded, '/', total);
+}
+
 function onRendered(){
-  console.log('rendered pdf');
+  console.log('[PdfTocDemo] rendered pdf');
   useLoading.hideLoading();
 }
 function onError(e: Error){
@@ -26,10 +40,12 @@ function onError(e: Error){
   >
     <template #default="{url}: PreviewSlotProps">
       <VuePdfToc
-        :src="url"
-        auto-enhance-outline
-        @rendered="onRendered"
-        @error="onError"
+          :src="url"
+          auto-enhance-outline
+          :loader-options="loaderOptions"
+          @rendered="onRendered"
+          @error="onError"
+          @progress="onProgress"
       />
     </template>
 

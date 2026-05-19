@@ -14,10 +14,24 @@ const viewerRef = useTemplateRef<HTMLDivElement>('viewerRef');
 
 const { createUrl } = useObjectUrl();
 const pdfSrc = computed(() => {
+  // 字符串 URL 会被 createUrl 直接透传，让 pdfjs 自己去做 Range / 流式加载，
+  // 远程大文件（30M+）首屏体验比 fetch 后再丢给 pdfjs 好很多。
   return createUrl(props.src);
 })
 
-const { pdf, pages } = usePDF(pdfSrc);
+const downloadProgress = ref<{ loaded: number; total: number } | null>(null);
+
+const { pdf, pages } = usePDF(pdfSrc, {
+  // 大文件优化：每次 Range 拉 256KB（默认 64KB），并关闭后台预取，
+  // 让首屏只下"末尾 xref + 当前页"所需字节，翻页时再按需取。
+  loaderOptions: {
+    rangeChunkSize: 256 * 1024,
+    disableAutoFetch: true,
+  },
+  onProgress: ({ loaded, total }) => {
+    downloadProgress.value = { loaded, total };
+  },
+});
 
 // 当 src 变化时，重置页码
 watch(pdfSrc, () => {

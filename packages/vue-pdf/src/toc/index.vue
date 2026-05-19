@@ -69,6 +69,7 @@
         :event-bus="eventBus"
         :link-service="linkService"
         :rendering-queue="renderingQueue"
+        :load-progress="loadProgress"
         @page-change="handleContentPageChange"
         @scale-updated="handleScaleUpdated"
       />
@@ -79,6 +80,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, shallowRef, nextTick } from 'vue'
 import { usePDF } from '../components'
+import type { PDFLoaderOptions } from '../components'
 import { Header, LeftSidebar, Content, PrintProgressDialog } from './components'
 import { EventBus, PDFLinkService, PDFRenderingQueue } from './services'
 import { SidebarView, PDF_TO_CSS_UNITS, MIN_SCALE, MAX_SCALE } from './utils'
@@ -107,6 +109,13 @@ const props = withDefaults(defineProps<{
   autoEnhanceOutline?: boolean
   /** 目录默认展开到的层级（含），默认 1 */
   outlineDefaultExpandLevel?: number
+  /**
+   * 透传给 pdfjs.getDocument 的加载参数（Range / Stream / cMap 等）。
+   * 加载远程大 PDF（30M+）时建议传：
+   * { rangeChunkSize: 262144, disableAutoFetch: true }
+   * 详见 {@link PDFLoaderOptions}。
+   */
+  loaderOptions?: PDFLoaderOptions
 }>(), {
   filename: '',
   showDownload: true,
@@ -124,6 +133,8 @@ const pdfSrc = computed(() => {
 const emit = defineEmits<{
   rendered: [{ totalPages: number }]
   error: [error: Error]
+  /** 网络下载进度（来自 pdfjs onProgress），仅当通过 URL 加载时会触发 */
+  progress: [{ loaded: number; total: number }]
 }>()
 
 // 状态管理
@@ -182,6 +193,9 @@ const pdfDocument = shallowRef<any>(null)
 // PDF 加载错误状态
 const loadError = ref<string | null>(null)
 
+// PDF 网络下载进度（pdfjs onProgress 回调）
+const loadProgress = ref<{ loaded: number; total: number } | null>(null)
+
 // 从 Link Annotations 生成的目录
 const generatedOutline = ref<OutlineItem[]>([])
 const isGeneratingOutline = ref(false)
@@ -193,6 +207,11 @@ const builtinOutline = ref<OutlineItem[]>([])
 const { pdf, pages, download, printFast, cancelPrint } = usePDF(
   pdfSrc,
   {
+    loaderOptions: props.loaderOptions,
+    onProgress: ({ loaded, total }) => {
+      loadProgress.value = { loaded, total }
+      emit('progress', { loaded, total })
+    },
     onError: (error: any) => {
       console.error('PDF加载失败:', error)
       loadError.value = error?.message || 'PDF加载失败'
@@ -228,6 +247,7 @@ function closeDocument() {
   currentPage.value = 1
   loading.value = true
   loadError.value = null
+  loadProgress.value = null
   builtinOutline.value = []
   generatedOutline.value = []
   isGeneratingOutline.value = false

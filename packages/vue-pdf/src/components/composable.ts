@@ -4,9 +4,10 @@ import { isRef, shallowRef, watch } from 'vue'
 
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist'
 import type { Ref } from 'vue'
-import type { OnPasswordCallback, PDFDestination, PDFInfo, PDFOptions, PDFSrc } from './types'
+import type { OnPasswordCallback, PDFDestination, PDFInfo, PDFLoaderOptions, PDFOptions, PDFSrc } from './types'
 import { getDestinationArray, getDestinationRef, getLocation, isSpecLike } from './utils/destination'
 import { addStylesToIframe, createIframe } from './utils/miscellaneous'
+import { OnProgressParameters } from "pdfjs-dist/types/src/display/api";
 
 // Could not find a way to make this work with vite, importing the worker entry bundle the whole worker to the the final output
 // https://erindoyle.dev/using-pdfjs-with-vite/
@@ -80,13 +81,54 @@ export function usePDF(src: PDFSrc | Ref<PDFSrc>,
     if (oldDoc) void oldDoc.destroy()
 
     // === pdf.js open() 流程 ===
-    const loadingTask = PDFJS.getDocument(source)
+    // 把 loaderOptions 合并进 src，让 pdfjs 走 Range / 流式加载，
+    // 同时保留对原有 string/URL/TypedArray/ArrayBuffer 形态 src 的兼容。
+    //
+    // 默认值面向"远程大 PDF"做了保守优化：
+    //   rangeChunkSize: 256KB（默认 64KB，减少 RTT 次数）
+    //   disableAutoFetch: true（关掉后台预取，首屏只下当前页，翻页按需取）
+    // 业务方传入的 loaderOptions 字段会覆盖同名默认；未传字段保留默认。
+    // 如果完全不想要这套默认（比如纯本地小文件），传 disableAutoFetch: false 即可。
+    const loaderOptions: PDFLoaderOptions = {
+      rangeChunkSize: 256 * 1024,
+      disableAutoFetch: true,
+      ...options.loaderOptions,
+    }
+
+    let documentParams: NonNullable<PDFSrc>
+    if (typeof source === 'string' || source instanceof URL) {
+      documentParams = { url: source, ...loaderOptions } as any
+    }
+    else if (source instanceof ArrayBuffer || ArrayBuffer.isView(source)) {
+      // 已经是内存数据，Range / Stream 类参数对它没意义，
+      // 但 cMap / standardFont / enableXfa 仍然有效，透传过去。
+      documentParams = { data: source as any, ...loaderOptions } as any
+    }
+    else {
+      // 已是 DocumentInitParameters 对象：调用方手写值优先级最高
+      documentParams = { ...loaderOptions, ...(source as any) }
+    }
+
+    const loadingTask = PDFJS.getDocument(documentParams)
 
     // 立即设置 pdf.value，避免后续重复触发 watch
     pdf.value = loadingTask
 
-    if (options.onProgress)
-      loadingTask.onProgress = options.onProgress
+    if (options.onProgress) {
+      // pdfjs 在 disableAutoFetch 模式 / document resolved 后会反复用同一个 loaded
+      // 触发 onProgress（worker 内部数据流仍在订阅但没新字节进来），
+      // 这里做一层去重避免几千次无意义的回调拖累上层 Vue reactivity。
+      const userOnProgress = options.onProgress
+      let lastLoaded = -1
+      let lastTotal = -1
+      loadingTask.onProgress = (progressData: OnProgressParameters) => {
+        const { loaded, total } = progressData
+        if (loaded === lastLoaded && total === lastTotal) return
+        lastLoaded = loaded
+        lastTotal = total
+        userOnProgress(progressData)
+      }
+    }
 
     if (options.onPassword) {
       loadingTask.onPassword = options.onPassword
